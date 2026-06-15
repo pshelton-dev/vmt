@@ -22,13 +22,10 @@ services:
       VMT_SMTP_TLS: ${VMT_SMTP_TLS:-starttls}
     volumes:
       - vmt_data:/data
-    # Publish the app's HTTP port. Front it with your own reverse proxy /
-    # TLS terminator for vmt.int.paulandjenn.com (forward X-Forwarded-Proto so
-    # session cookies are marked Secure over HTTPS).
-    # Set VMT_BIND_ADDR=127.0.0.1 when the proxy runs on the same host, so the
-    # app isn't exposed on all interfaces.
-    ports:
-      - "${VMT_BIND_ADDR:-0.0.0.0}:${VMT_HTTP_PORT:-8080}:8080"
+    # No published host port: the app is reached over the udBridge network
+    # (e.g. by the reverse proxy at vmt-app:8080). It listens on 8080 internally.
+    expose:
+      - "8080"
     networks:
       - udBridge
 

@@ -44,14 +44,16 @@ put it behind your own reverse proxy / TLS terminator (it's configured for
 
 ```bash
 cp .env.example .env
-# edit .env — optionally set VMT_ADMIN_PASSWORD and VMT_HTTP_PORT
+# edit .env — optionally set VMT_ADMIN_PASSWORD
 docker compose up -d --build
 ```
 
-This starts the app and publishes its HTTP port (default `8080`) on the host.
-Reach it directly at `http://<host>:8080`, or — recommended — point your reverse
-proxy for **`vmt.int.paulandjenn.com`** at that port and let the proxy terminate
-TLS (see [Reverse proxy & TLS](#reverse-proxy--tls)).
+The app does **not** publish a host port; it listens on `8080` and joins the
+external **`udBridge`** Docker network. Your reverse proxy (on the same network)
+reaches it as **`vmt-app:8080`** and terminates TLS for
+**`vmt.int.paulandjenn.com`** (see [Reverse proxy & TLS](#reverse-proxy--tls)).
+The `udBridge` network must already exist on the host (`docker network create
+udBridge` if not).
 
 On first visit:
 - If you set `VMT_ADMIN_PASSWORD`, log in with it.
@@ -60,9 +62,10 @@ On first visit:
 ### Reverse proxy & TLS
 
 This stack no longer bundles a web server / TLS — front it with your existing
-proxy (Nginx, Traefik, HAProxy, Caddy elsewhere, a tunnel, etc.). The proxy
-should forward to the published port and pass `X-Forwarded-Proto` so VMT marks
-its session cookie `Secure` over HTTPS. Example Nginx server block:
+proxy (Nginx Proxy Manager, Traefik, HAProxy, Caddy elsewhere, etc.). Put the
+proxy on the shared `udBridge` network so it can reach the container by name,
+and pass `X-Forwarded-Proto` so VMT marks its session cookie `Secure` over HTTPS.
+Example Nginx server block:
 
 ```nginx
 server {
@@ -73,7 +76,7 @@ server {
     client_max_body_size 40m;   # allow photo/document uploads & restores
 
     location / {
-        proxy_pass         http://127.0.0.1:8080;
+        proxy_pass         http://vmt-app:8080;   # container name on udBridge
         proxy_set_header   Host              $host;
         proxy_set_header   X-Forwarded-Proto $scheme;
         proxy_set_header   X-Real-IP         $remote_addr;
@@ -148,8 +151,9 @@ server until you run the pull/up step there. Your data in the `vmt_data` volume
 is preserved across restarts and migrations run on startup.
 
 On the remote host, point your reverse proxy for `vmt.int.paulandjenn.com` at
-`127.0.0.1:8080` (see [Reverse proxy & TLS](#reverse-proxy--tls)) and create the
-DNS record. Then browse to `https://vmt.int.paulandjenn.com` and log in.
+`vmt-app:8080` over the `udBridge` network (see
+[Reverse proxy & TLS](#reverse-proxy--tls)) and create the DNS record. Then
+browse to `https://vmt.int.paulandjenn.com` and log in.
 
 **Updating later** is the same two steps: run `./push.sh` to publish a new image,
 then run the pull/up commands on the server when you want it live. (`update.sh` is
@@ -167,7 +171,6 @@ All configuration is via environment variables (see `.env.example`):
 
 | Variable             | Default                            | Purpose                                          |
 |----------------------|------------------------------------|--------------------------------------------------|
-| `VMT_HTTP_PORT`      | `8080`                             | Host port the app is published on                |
 | `VMT_BASE_URL`       | `https://vmt.int.paulandjenn.com`  | Public URL; used for links in notification emails|
 | `VMT_ADMIN_PASSWORD` | _(empty)_                          | Bootstraps the password on first run only        |
 | `VMT_CURRENCY`       | `$`                                | Currency symbol in the UI                        |
@@ -366,9 +369,9 @@ self-contained and works offline.
 ## Security notes
 
 - The app serves plain HTTP and is meant to sit **behind your own reverse proxy
-  / TLS terminator**. Don't expose its published port directly to untrusted
-  networks — restrict it to the proxy host (e.g. bind to `127.0.0.1`) or your
-  internal network.
+  / TLS terminator**. It publishes no host port — it's only reachable over the
+  internal `udBridge` network (proxy-only access), so it's never exposed on the
+  host's interfaces.
 - Session cookies are `HttpOnly`, `SameSite=Lax`, and marked `Secure` when the
   request arrives over HTTPS — which the app detects from the `X-Forwarded-Proto`
   header, so configure your proxy to send it.
