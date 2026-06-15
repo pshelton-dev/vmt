@@ -29,7 +29,15 @@ services:
     # app isn't exposed on all interfaces.
     ports:
       - "${VMT_BIND_ADDR:-0.0.0.0}:${VMT_HTTP_PORT:-8080}:8080"
+    networks:
+      - udBridge
 
 volumes:
   vmt_data:
     name: vmt_data   # fixed name (no project prefix) so recreation can't strand data
+
+networks:
+  # Existing external network (e.g. shared with the reverse proxy). It must
+  # already exist on the host: `docker network create udBridge` if not.
+  udBridge:
+    external: true
