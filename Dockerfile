@@ -19,7 +19,10 @@ COPY --from=build /out/vmt /usr/local/bin/vmt
 
 ENV VMT_DATA_DIR=/data \
     VMT_ADDR=:8080
-VOLUME ["/data"]
+# NOTE: intentionally NO `VOLUME ["/data"]`. A declared VOLUME makes Docker
+# create a fresh ANONYMOUS volume at /data whenever the container is recreated
+# without an explicit mount — which silently strands data. Always mount the
+# named `vmt_data` volume via compose (see docker-compose*.yml) instead.
 RUN mkdir -p /data && chown -R vmt:vmt /data
 USER vmt
 

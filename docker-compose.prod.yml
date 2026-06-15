@@ -27,3 +27,4 @@ services:
 
 volumes:
   vmt_data:
+    name: vmt_data   # fixed name (no project prefix) so recreation can't strand data
