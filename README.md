@@ -45,6 +45,7 @@ put it behind your own reverse proxy / TLS terminator (it's configured for
 ```bash
 cp .env.example .env
 # edit .env — optionally set VMT_ADMIN_PASSWORD
+docker volume create vmt_data        # one-time: the data volume (external)
 docker compose up -d --build
 ```
 
@@ -109,7 +110,7 @@ tooling. `docker-compose.prod.yml` references the registry image via `VMT_IMAGE`
 - Put the prod compose file + your `.env` on the server once:
 
   ```bash
-  ssh user@server 'mkdir -p ~/vmt'
+  ssh user@server 'mkdir -p ~/vmt && docker volume create vmt_data'
   scp docker-compose.prod.yml user@server:vmt/
   scp .env                    user@server:vmt/
   ```

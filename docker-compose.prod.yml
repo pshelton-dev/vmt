@@ -30,8 +30,12 @@ services:
       - udBridge
 
 volumes:
+  # Pre-existing named volume, managed outside Compose so recreation (or even
+  # `down -v`) can never strand or delete the data. Create it once on a fresh
+  # host:  docker volume create vmt_data
   vmt_data:
-    name: vmt_data   # fixed name (no project prefix) so recreation can't strand data
+    external: true
+    name: vmt_data
 
 networks:
   # Existing external network (e.g. shared with the reverse proxy). It must
