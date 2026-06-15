@@ -114,9 +114,15 @@ tooling. `docker-compose.prod.yml` references the registry image via `VMT_IMAGE`
 - Server needs Docker Engine + the Compose plugin; you need `buildx` locally
   (bundled with Docker Desktop) to cross-build `linux/amd64`.
 
-### 1. Push the image (from your laptop)
+### 1. Publish the image
 
-`push.sh` cross-builds `linux/amd64` and pushes it — nothing else:
+**Automatically (CI):** `.github/workflows/publish.yml` builds and pushes the
+`linux/amd64` image to GHCR on every push to `main` (tags `:latest`,
+`:YYYY-MM-DD`, `:sha-<short>`) and on git tags `v*` (semver tags). It uses the
+built-in `GITHUB_TOKEN`, so no PAT/secret setup is needed — just `git push`.
+
+**Manually (from your laptop):** `push.sh` cross-builds `linux/amd64` and pushes
+it — handy for a one-off without a commit:
 
 ```bash
 ./push.sh
