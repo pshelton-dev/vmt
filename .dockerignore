@@ -1,0 +1,12 @@
+.git
+.gitignore
+data
+*.db
+*.db-*
+.env
+README.md
+docker-compose.yml
+docker-compose.override.yml
+docker-compose.prod.yml
+update.sh
+push.sh

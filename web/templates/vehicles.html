@@ -1,0 +1,29 @@
+{{define "content"}}
+{{$cfg := .Cfg}}
+<div class="page-head">
+  <h1>Vehicles</h1>
+  <a class="primary" href="/vehicles/new">+ Add vehicle</a>
+</div>
+{{with .Data}}
+{{if .}}
+<div class="vehicle-grid">
+  {{range .}}
+  <a class="vehicle-card" href="/vehicles/{{.ID}}">
+    <div class="thumb">{{if .PhotoID}}<img src="/files/{{.PhotoID}}" alt="{{.Name}}">{{else}}<span>🚗</span>{{end}}</div>
+    <div class="vehicle-body">
+      <h3>{{.Name}}</h3>
+      <p class="muted">{{if .Year}}{{.Year}} {{end}}{{.Make}} {{.Model}}</p>
+      <p class="meta">{{dist $cfg .Odometer}} · {{.ServiceCount}} records · {{money $cfg .TotalCost}}</p>
+      {{if .DueReminders}}<span class="badge due">{{.DueReminders}} due</span>{{end}}
+    </div>
+  </a>
+  {{end}}
+</div>
+{{else}}
+<div class="empty card">
+  <p>No vehicles yet.</p>
+  <a class="primary" href="/vehicles/new">Add your first vehicle</a>
+</div>
+{{end}}
+{{end}}
+{{end}}

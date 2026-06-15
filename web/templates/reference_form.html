@@ -1,0 +1,40 @@
+{{define "content"}}
+{{with .Data}}
+{{$i := .Item}}
+<div class="page-head">
+  <h1>Edit reference item</h1>
+  <p class="muted">{{.Vehicle.Name}}</p>
+</div>
+<form class="card form" method="post" action="{{.Action}}">
+  <div class="grid2">
+    <label>Type
+      <select name="kind">
+        {{range .Kinds}}<option value="{{.Value}}" {{if eq .Value $i.Kind}}selected{{end}}>{{.Label}}</option>{{end}}
+      </select>
+    </label>
+    <label>Name *
+      <input name="name" value="{{$i.Name}}" required placeholder="Engine oil filter">
+    </label>
+    <label>Part number
+      <input name="part_number" value="{{$i.PartNumber}}" placeholder="FL-2016 / FA-1883">
+    </label>
+    <label>Manufacturer
+      <input name="manufacturer" value="{{$i.Manufacturer}}" placeholder="Motorcraft">
+    </label>
+    <label>Capacity
+      <input name="capacity" value="{{$i.Capacity}}" placeholder="13 qt / 0.6 L">
+    </label>
+    <label>Spec / grade
+      <input name="spec" value="{{$i.Spec}}" placeholder="15W-40 / gap 0.044&quot;">
+    </label>
+  </div>
+  <label>Notes
+    <textarea name="notes" rows="2">{{$i.Notes}}</textarea>
+  </label>
+  <div class="actions">
+    <button type="submit" class="primary">Save</button>
+    <a class="btn" href="/vehicles/{{.Vehicle.ID}}#reference">Cancel</a>
+  </div>
+</form>
+{{end}}
+{{end}}

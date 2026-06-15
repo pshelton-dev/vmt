@@ -1,0 +1,50 @@
+{{define "content"}}
+{{$cfg := .Cfg}}
+<div class="page-head">
+  <h1>Cost reports</h1>
+  <a class="btn" href="/export/services.csv" download>⬇ Export all services (CSV)</a>
+</div>
+{{with .Data}}
+<div class="stats">
+  <div class="stat"><span class="num">{{money $cfg .TotalCost}}</span><span class="lbl">All-time spend</span></div>
+  <div class="stat"><span class="num">{{money $cfg .YearCost}}</span><span class="lbl">This year</span></div>
+  <div class="stat"><span class="num">{{money $cfg .AvgPerService}}</span><span class="lbl">Avg / service</span></div>
+  <div class="stat"><span class="num">{{.ServiceCount}}</span><span class="lbl">Records</span></div>
+</div>
+
+<section class="card">
+  <h2>Monthly spending (last 12 months)</h2>
+  {{if .MonthlyChart}}{{.MonthlyChart}}{{else}}<p class="muted small">No data yet.</p>{{end}}
+</section>
+
+<div class="report-cols">
+  <section class="card">
+    <h2>By category</h2>
+    {{if .ByCategory}}
+    <table class="data">
+      <thead><tr><th>Category</th><th class="num">Total</th><th class="num">Share</th></tr></thead>
+      <tbody>
+      {{range .ByCategory}}
+        <tr><td><span class="cat">{{.Label}}</span></td><td class="num">{{money $cfg .Total}}</td><td class="num">{{.Pct}}%</td></tr>
+      {{end}}
+      </tbody>
+    </table>
+    {{else}}<p class="muted small">No data yet.</p>{{end}}
+  </section>
+
+  <section class="card">
+    <h2>By vehicle</h2>
+    {{if .ByVehicle}}
+    <table class="data">
+      <thead><tr><th>Vehicle</th><th class="num">Total</th><th class="num">Share</th></tr></thead>
+      <tbody>
+      {{range .ByVehicle}}
+        <tr><td><a href="/vehicles/{{.ID}}">{{.Label}}</a></td><td class="num">{{money $cfg .Total}}</td><td class="num">{{.Pct}}%</td></tr>
+      {{end}}
+      </tbody>
+    </table>
+    {{else}}<p class="muted small">No data yet.</p>{{end}}
+  </section>
+</div>
+{{end}}
+{{end}}

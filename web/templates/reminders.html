@@ -1,0 +1,25 @@
+{{define "content"}}
+<div class="page-head"><h1>Reminders</h1></div>
+{{with .Data}}
+{{if .}}
+<div class="card">
+  <ul class="reminder-list big">
+    {{range .}}
+    <li>
+      <span class="badge {{.Status}}">{{.StatusText}}</span>
+      <a href="/vehicles/{{.VehicleID}}">{{.VehicleName}}</a>
+      <span class="r-title">{{.Title}}</span>
+      {{if .Notes}}<span class="muted small">— {{.Notes}}</span>{{end}}
+      <span class="r-actions">
+        <a class="mini" href="/reminders/{{.ID}}/edit">edit</a>
+        <form method="post" action="/reminders/{{.ID}}/complete"><button class="mini">done</button></form>
+      </span>
+    </li>
+    {{end}}
+  </ul>
+</div>
+{{else}}
+<div class="empty card"><p>No active reminders. 🎉</p></div>
+{{end}}
+{{end}}
+{{end}}

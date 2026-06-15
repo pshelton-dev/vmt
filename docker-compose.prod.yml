@@ -1,0 +1,29 @@
+# Production compose for a remote host that PULLS the image from a registry.
+# The image is built and pushed from your laptop; the remote never builds.
+#
+# Set VMT_IMAGE in the .env on the remote (e.g. ghcr.io/OWNER/vmt:latest).
+# Copy this file + .env to the server once; then `docker compose -f this pull && up -d`.
+services:
+  app:
+    image: ${VMT_IMAGE:?set VMT_IMAGE, e.g. ghcr.io/OWNER/vmt:latest}
+    restart: unless-stopped
+    environment:
+      VMT_ADMIN_PASSWORD: ${VMT_ADMIN_PASSWORD:-}
+      VMT_CURRENCY: ${VMT_CURRENCY:-$$}
+      VMT_DISTANCE_UNIT: ${VMT_DISTANCE_UNIT:-mi}
+      VMT_DATE_FORMAT: ${VMT_DATE_FORMAT:-Jan 2, 2006}
+      TZ: ${TZ:-UTC}
+      VMT_BASE_URL: ${VMT_BASE_URL:-https://vmt.int.paulandjenn.com}
+      VMT_SMTP_HOST: ${VMT_SMTP_HOST:-}
+      VMT_SMTP_PORT: ${VMT_SMTP_PORT:-587}
+      VMT_SMTP_USER: ${VMT_SMTP_USER:-}
+      VMT_SMTP_PASS: ${VMT_SMTP_PASS:-}
+      VMT_SMTP_FROM: ${VMT_SMTP_FROM:-}
+      VMT_SMTP_TLS: ${VMT_SMTP_TLS:-starttls}
+    volumes:
+      - vmt_data:/data
+    ports:
+      - "${VMT_BIND_ADDR:-127.0.0.1}:${VMT_HTTP_PORT:-8080}:8080"
+
+volumes:
+  vmt_data:

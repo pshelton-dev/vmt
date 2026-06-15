@@ -1,0 +1,34 @@
+services:
+  app:
+    build: .
+    image: vmt:latest
+    restart: unless-stopped
+    environment:
+      # Bootstraps the admin password on first run only. After setup you may
+      # remove this; the hash is stored in the database.
+      VMT_ADMIN_PASSWORD: ${VMT_ADMIN_PASSWORD:-}
+      VMT_CURRENCY: ${VMT_CURRENCY:-$$}
+      VMT_DISTANCE_UNIT: ${VMT_DISTANCE_UNIT:-mi}
+      VMT_DATE_FORMAT: ${VMT_DATE_FORMAT:-Jan 2, 2006}
+      TZ: ${TZ:-UTC}
+      # Public base URL of the app (used for links in notification emails).
+      VMT_BASE_URL: ${VMT_BASE_URL:-https://vmt.int.paulandjenn.com}
+      # Outbound email (SMTP) for reminder notifications. Leave blank to disable.
+      VMT_SMTP_HOST: ${VMT_SMTP_HOST:-}
+      VMT_SMTP_PORT: ${VMT_SMTP_PORT:-587}
+      VMT_SMTP_USER: ${VMT_SMTP_USER:-}
+      VMT_SMTP_PASS: ${VMT_SMTP_PASS:-}
+      VMT_SMTP_FROM: ${VMT_SMTP_FROM:-}
+      VMT_SMTP_TLS: ${VMT_SMTP_TLS:-starttls}
+    volumes:
+      - vmt_data:/data
+    # Publish the app's HTTP port. Front it with your own reverse proxy /
+    # TLS terminator for vmt.int.paulandjenn.com (forward X-Forwarded-Proto so
+    # session cookies are marked Secure over HTTPS).
+    # Set VMT_BIND_ADDR=127.0.0.1 when the proxy runs on the same host, so the
+    # app isn't exposed on all interfaces.
+    ports:
+      - "${VMT_BIND_ADDR:-0.0.0.0}:${VMT_HTTP_PORT:-8080}:8080"
+
+volumes:
+  vmt_data:

@@ -1,0 +1,41 @@
+{{define "content"}}
+{{with .Data}}
+{{$r := .Reminder}}
+<div class="page-head">
+  <h1>{{if .IsNew}}Add reminder{{else}}Edit reminder{{end}}</h1>
+  <p class="muted">{{.Vehicle.Name}}</p>
+</div>
+<form class="card form" method="post" action="{{.Action}}">
+  <label>Title *
+    <input name="title" value="{{$r.Title}}" required placeholder="Oil change">
+  </label>
+  <p class="muted small">Set a due date, a due odometer, or a recurring interval — whichever applies.</p>
+  <div class="grid2">
+    <label>Due date
+      <input type="date" name="due_date" value="{{pstr $r.DueDate}}">
+    </label>
+    <label>Due at odometer
+      <input type="number" name="due_odometer" min="0" value="{{if $r.DueOdometer}}{{deref64 $r.DueOdometer}}{{end}}">
+    </label>
+    <label>Every (months)
+      <input type="number" name="interval_months" min="0" value="{{pint $r.IntervalMonths}}">
+    </label>
+    <label>Every (miles)
+      <input type="number" name="interval_miles" min="0" value="{{pint $r.IntervalMiles}}">
+    </label>
+  </div>
+  <label>Notes
+    <textarea name="notes" rows="2">{{$r.Notes}}</textarea>
+  </label>
+  <label class="check">
+    <input type="checkbox" name="notify" value="1" {{if $r.Notify}}checked{{end}}>
+    Email me when this is due
+  </label>
+  {{if not .MailReady}}<p class="muted small">⚠ Email isn't configured yet — set it up under <a href="/settings">Settings</a> for this to send.</p>{{end}}
+  <div class="actions">
+    <button type="submit" class="primary">Save</button>
+    <a class="btn" href="/vehicles/{{.Vehicle.ID}}">Cancel</a>
+  </div>
+</form>
+{{end}}
+{{end}}

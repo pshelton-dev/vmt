@@ -1,0 +1,12 @@
+/data/
+*.db
+*.db-shm
+*.db-wal
+.env
+/vmt
+/tmp/
+
+# OS / editor / local junk
+.DS_Store
+**/.DS_Store
+.claude/settings.local.json

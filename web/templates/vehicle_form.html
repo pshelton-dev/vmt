@@ -1,0 +1,56 @@
+{{define "content"}}
+{{with .Data}}
+{{$v := .Vehicle}}
+<div class="page-head">
+  <h1>{{if .IsNew}}Add vehicle{{else}}Edit {{$v.Name}}{{end}}</h1>
+</div>
+<form class="card form" method="post" action="{{.Action}}" enctype="multipart/form-data">
+  <div class="grid2">
+    <label>Name *
+      <input name="name" value="{{$v.Name}}" required placeholder="Daily Driver">
+    </label>
+    <label>Year
+      {{$sy := derefInt $v.Year}}
+      <select name="year">
+        <option value="">—</option>
+        {{range years}}<option value="{{.}}" {{if eq . $sy}}selected{{end}}>{{.}}</option>{{end}}
+      </select>
+    </label>
+    <label>Make
+      <input name="make" id="make-input" list="makes-list" value="{{$v.Make}}" placeholder="Toyota" autocomplete="off">
+      <datalist id="makes-list"></datalist>
+    </label>
+    <label>Model
+      <input name="model" id="model-input" list="models-list" value="{{$v.Model}}" placeholder="Tacoma" autocomplete="off">
+      <datalist id="models-list"></datalist>
+    </label>
+    <label>VIN
+      <input name="vin" value="{{$v.VIN}}" maxlength="17" placeholder="1HGCM82633A004352">
+    </label>
+    <label>License plate
+      <input name="license_plate" value="{{$v.LicensePlate}}">
+    </label>
+    <label>Color
+      <input name="color" value="{{$v.Color}}">
+    </label>
+    <label>Current odometer
+      <input name="odometer" type="number" min="0" value="{{if $v.Odometer}}{{$v.Odometer}}{{end}}">
+    </label>
+    <label>Purchase date
+      <input name="purchase_date" type="date" value="{{pstr $v.PurchaseDate}}">
+    </label>
+  </div>
+  <label>Notes
+    <textarea name="notes" rows="3">{{$v.Notes}}</textarea>
+  </label>
+  <label>{{if .IsNew}}Photo{{else}}Add/replace photo{{end}}
+    <input name="photo" type="file" accept="image/*">
+  </label>
+  <div class="actions">
+    <button type="submit" class="primary">Save</button>
+    <a class="btn" href="{{if .IsNew}}/vehicles{{else}}/vehicles/{{$v.ID}}{{end}}">Cancel</a>
+  </div>
+</form>
+<script src="/static/vehicle-form.js" defer></script>
+{{end}}
+{{end}}

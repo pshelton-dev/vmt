@@ -1,0 +1,32 @@
+{{define "base"}}<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>{{if .Title}}{{.Title}} · {{end}}VMT</title>
+  <link rel="stylesheet" href="/static/style.css">
+  <script src="/static/htmx.min.js" defer></script>
+  <link rel="icon" href="/static/favicon.svg">
+</head>
+<body>
+{{if .Authed}}
+<header class="topbar">
+  <a class="brand" href="/">🔧 VMT</a>
+  <nav>
+    <a href="/" class="{{if eq .Active "dashboard"}}active{{end}}">Dashboard</a>
+    <a href="/vehicles" class="{{if eq .Active "vehicles"}}active{{end}}">Vehicles</a>
+    <a href="/reminders" class="{{if eq .Active "reminders"}}active{{end}}">Reminders</a>
+    <a href="/reports" class="{{if eq .Active "reports"}}active{{end}}">Reports</a>
+    <a href="/settings" class="{{if eq .Active "settings"}}active{{end}}">Settings</a>
+  </nav>
+  <form method="post" action="/logout" class="logout">
+    <button type="submit" class="link">Sign out</button>
+  </form>
+</header>
+{{end}}
+<main class="{{if not .Authed}}centered{{end}}">
+  {{if .Flash}}<div class="flash">{{.Flash}}</div>{{end}}
+  {{template "content" .}}
+</main>
+</body>
+</html>{{end}}

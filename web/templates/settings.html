@@ -1,0 +1,110 @@
+{{define "content"}}
+<div class="page-head"><h1>Settings</h1></div>
+{{with .Data}}
+<div class="settings-cols">
+  <section class="card form">
+    <h2>Change password</h2>
+    <form method="post" action="/settings/password">
+      <label>Current password
+        <input type="password" name="current" required autocomplete="current-password">
+      </label>
+      <label>New password
+        <input type="password" name="new" minlength="6" required autocomplete="new-password">
+      </label>
+      <label>Confirm new password
+        <input type="password" name="confirm" minlength="6" required autocomplete="new-password">
+      </label>
+      <div class="actions"><button type="submit" class="primary">Update password</button></div>
+    </form>
+  </section>
+
+  <section class="card form">
+    <h2>Display preferences</h2>
+    <form method="post" action="/settings/preferences">
+      <div class="grid2">
+        <label>Currency symbol
+          <input name="currency" value="{{.Currency}}" maxlength="3">
+        </label>
+        <label>Distance unit
+          <input name="distance_unit" value="{{.DistanceUnit}}" maxlength="8">
+        </label>
+      </div>
+      <label>Date format
+        <select name="date_format">
+          {{$current := .DateFormat}}
+          {{range .DatePresets}}
+          <option value="{{.Layout}}" {{if eq .Layout $current}}selected{{end}}>{{.Example}}</option>
+          {{end}}
+        </select>
+      </label>
+      <div class="actions"><button type="submit" class="primary">Save preferences</button></div>
+    </form>
+  </section>
+
+  <section class="card form backup-card">
+    <h2>Email notifications</h2>
+    <p class="muted small">Get an email when a reminder you've opted into becomes
+      due. Enable it per reminder with the “Email me when this is due” checkbox.</p>
+
+    {{if .SMTPConfigured}}
+      <p class="small">📧 SMTP is configured (sending as <code>{{.SMTPFrom}}</code>).</p>
+    {{else}}
+      <p class="small">⚠ SMTP is not configured. Set the <code>VMT_SMTP_*</code>
+        environment variables (see README) and restart to enable sending.</p>
+    {{end}}
+
+    <form method="post" action="/settings/notifications">
+      <div class="grid2">
+        <label>Notification recipient
+          <input type="email" name="notify_email" value="{{.NotifyEmail}}" placeholder="you@example.com">
+        </label>
+        <label class="check" style="align-self:end">
+          <input type="checkbox" name="notify_enabled" value="1" {{if .NotifyEnabled}}checked{{end}}>
+          Enable email notifications
+        </label>
+      </div>
+      <div class="actions">
+        <button type="submit" class="primary">Save notifications</button>
+        <button type="submit" formaction="/settings/test-email" class="btn">Send test email</button>
+      </div>
+    </form>
+  </section>
+
+  <section class="card form backup-card">
+    <h2>Import service records (CSV)</h2>
+    <p class="muted small">Import a CSV with the columns
+      <code>Vehicle, Date, Odometer, Category, Description, Vendor, Cost, Notes</code>
+      — the same format produced by <a href="/export/services.csv" download>Export</a>,
+      which you can use as a template. Vehicles are matched by name and created
+      automatically if they don't exist yet. Importing adds records; it never
+      deletes anything.</p>
+    <form method="post" action="/settings/import/preview" enctype="multipart/form-data">
+      <label>CSV file
+        <input type="file" name="csv" accept=".csv,text/csv" required>
+      </label>
+      <div class="actions"><button type="submit" class="primary">Preview import</button></div>
+    </form>
+  </section>
+
+  <section class="card form backup-card">
+    <h2>Backup &amp; restore</h2>
+    <p class="muted small">Download a complete archive of your database and
+      uploaded files, or restore from a previous backup.</p>
+
+    <a class="btn" href="/settings/backup" download>⬇ Download backup (.tar.gz)</a>
+
+    <hr class="sep">
+
+    <form method="post" action="/settings/restore" enctype="multipart/form-data"
+          onsubmit="return confirm('Restore will REPLACE all current data with the contents of this backup, then restart the app. Continue?')">
+      <label>Restore from backup
+        <input type="file" name="backup" accept=".gz,.tgz,application/gzip" required>
+      </label>
+      <p class="muted small">⚠ This overwrites everything. Your current data is
+        kept as <code>vmt.db.prerestore</code> in the data directory just in case.</p>
+      <div class="actions"><button type="submit" class="btn danger">Restore &amp; restart</button></div>
+    </form>
+  </section>
+</div>
+{{end}}
+{{end}}
