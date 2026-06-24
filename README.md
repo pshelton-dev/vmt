@@ -199,6 +199,7 @@ Reminders can email you when they fall due. Setup:
    | `VMT_SMTP_PASS` | `app-password`         |                                         |
    | `VMT_SMTP_FROM` | `vmt@example.com`      | Sender address                          |
    | `VMT_SMTP_TLS`  | `starttls`             | `starttls` (default), `implicit`, `none`|
+   | `VMT_SMTP_INSECURE` | _(off)_            | `1` to skip TLS cert verification (self-signed servers) |
    | `VMT_BASE_URL`  | `https://vmt.example`  | Optional; adds a link to emails         |
 
 2. In **Settings → Email notifications**, set the recipient address, tick

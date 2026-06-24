@@ -20,6 +20,7 @@ services:
       VMT_SMTP_PASS: ${VMT_SMTP_PASS:-}
       VMT_SMTP_FROM: ${VMT_SMTP_FROM:-}
       VMT_SMTP_TLS: ${VMT_SMTP_TLS:-starttls}
+      VMT_SMTP_INSECURE: ${VMT_SMTP_INSECURE:-}
     volumes:
       - vmt_data:/data
     # No published host port: the app is reached over the udBridge network

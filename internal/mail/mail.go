@@ -1,5 +1,6 @@
 // Package mail sends outbound notification email over SMTP using only the
-// standard library. It supports STARTTLS (default), implicit TLS, and plaintext.
+// standard library. It supports STARTTLS (default), implicit TLS, and plaintext,
+// and can optionally skip TLS certificate verification (self-signed servers).
 package mail
 
 import (
@@ -13,6 +14,8 @@ import (
 	"vmt/internal/config"
 )
 
+const dialTimeout = 15 * time.Second
+
 // Send delivers a plaintext message to a single recipient.
 func Send(cfg config.SMTP, to, subject, body string) error {
 	if !cfg.Configured() {
@@ -21,6 +24,13 @@ func Send(cfg config.SMTP, to, subject, body string) error {
 	addr := net.JoinHostPort(cfg.Host, cfg.Port)
 	msg := buildMessage(cfg.From, to, subject, body)
 
+	// TLS settings shared by the STARTTLS and implicit-TLS paths. InsecureSkipVerify
+	// is opt-in (VMT_SMTP_INSECURE) for mail servers with self-signed certs.
+	tlsConf := &tls.Config{
+		ServerName:         cfg.Host,
+		InsecureSkipVerify: cfg.Insecure,
+	}
+
 	var auth smtp.Auth
 	if cfg.User != "" {
 		auth = smtp.PlainAuth("", cfg.User, cfg.Pass, cfg.Host)
@@ -28,17 +38,18 @@ func Send(cfg config.SMTP, to, subject, body string) error {
 
 	switch strings.ToLower(cfg.TLS) {
 	case "implicit":
-		return sendImplicitTLS(addr, cfg.Host, auth, cfg.From, to, msg)
+		return sendImplicit(addr, cfg.Host, tlsConf, auth, cfg.From, to, msg)
 	case "none":
-		return smtp.SendMail(addr, auth, cfg.From, []string{to}, msg)
+		return sendPlain(addr, cfg.Host, nil, auth, cfg.From, to, msg)
 	default: // "starttls"
-		return smtp.SendMail(addr, auth, cfg.From, []string{to}, msg)
+		return sendPlain(addr, cfg.Host, tlsConf, auth, cfg.From, to, msg)
 	}
 }
 
-// sendImplicitTLS handles servers that expect TLS from the first byte (port 465).
-func sendImplicitTLS(addr, host string, auth smtp.Auth, from, to string, msg []byte) error {
-	conn, err := tls.DialWithDialer(&net.Dialer{Timeout: 15 * time.Second}, "tcp", addr, &tls.Config{ServerName: host})
+// sendPlain dials plaintext and, when tlsConf is non-nil, upgrades via STARTTLS
+// before authenticating and sending.
+func sendPlain(addr, host string, tlsConf *tls.Config, auth smtp.Auth, from, to string, msg []byte) error {
+	conn, err := net.DialTimeout("tcp", addr, dialTimeout)
 	if err != nil {
 		return err
 	}
@@ -47,6 +58,32 @@ func sendImplicitTLS(addr, host string, auth smtp.Auth, from, to string, msg []b
 		return err
 	}
 	defer c.Close()
+	if tlsConf != nil {
+		if ok, _ := c.Extension("STARTTLS"); !ok {
+			return fmt.Errorf("server does not support STARTTLS")
+		}
+		if err := c.StartTLS(tlsConf); err != nil {
+			return err
+		}
+	}
+	return finishSend(c, auth, from, to, msg)
+}
+
+// sendImplicit dials with TLS from the first byte (port 465).
+func sendImplicit(addr, host string, tlsConf *tls.Config, auth smtp.Auth, from, to string, msg []byte) error {
+	conn, err := tls.DialWithDialer(&net.Dialer{Timeout: dialTimeout}, "tcp", addr, tlsConf)
+	if err != nil {
+		return err
+	}
+	c, err := smtp.NewClient(conn, host)
+	if err != nil {
+		return err
+	}
+	defer c.Close()
+	return finishSend(c, auth, from, to, msg)
+}
+
+func finishSend(c *smtp.Client, auth smtp.Auth, from, to string, msg []byte) error {
 	if auth != nil {
 		if err := c.Auth(auth); err != nil {
 			return err
