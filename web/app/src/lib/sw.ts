@@ -18,8 +18,8 @@ export function registerSW() {
 
   window.addEventListener("load", async () => {
     try {
-      const reg = await navigator.serviceWorker.register(`/app/sw.js?v=${__BUILD_ID__}`, {
-        scope: "/app/",
+      const reg = await navigator.serviceWorker.register(`/sw.js?v=${__BUILD_ID__}`, {
+        scope: "/",
       });
 
       const notify = (worker: ServiceWorker) => {

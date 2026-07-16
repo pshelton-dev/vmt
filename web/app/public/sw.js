@@ -15,7 +15,7 @@ const CACHE = `vmt-${VERSION}`;
 
 self.addEventListener("install", (event) => {
   event.waitUntil(
-    caches.open(CACHE).then((c) => c.addAll(["/app/", "/app/manifest.webmanifest"])),
+    caches.open(CACHE).then((c) => c.addAll(["/", "/manifest.webmanifest"])),
   );
 });
 
@@ -38,7 +38,7 @@ self.addEventListener("fetch", (event) => {
   if (url.pathname.startsWith("/api/")) return; // network only
 
   // Immutable hashed assets: cache-first.
-  if (url.pathname.startsWith("/app/assets/")) {
+  if (url.pathname.startsWith("/assets/")) {
     event.respondWith(
       caches.match(event.request).then(
         (hit) =>
@@ -53,16 +53,14 @@ self.addEventListener("fetch", (event) => {
     return;
   }
 
-  // Everything else under /app and /static: network-first, cache fallback.
-  if (url.pathname.startsWith("/app") || url.pathname.startsWith("/static/")) {
-    event.respondWith(
-      fetch(event.request)
-        .then((res) => {
-          const copy = res.clone();
-          caches.open(CACHE).then((c) => c.put(event.request, copy));
-          return res;
-        })
-        .catch(() => caches.match(event.request).then((hit) => hit || caches.match("/app/"))),
-    );
-  }
+  // Everything else (navigations, /static, icons): network-first, cache fallback.
+  event.respondWith(
+    fetch(event.request)
+      .then((res) => {
+        const copy = res.clone();
+        caches.open(CACHE).then((c) => c.put(event.request, copy));
+        return res;
+      })
+      .catch(() => caches.match(event.request).then((hit) => hit || caches.match("/"))),
+  );
 });

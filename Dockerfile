@@ -38,6 +38,6 @@ USER vmt
 
 EXPOSE 8080
 HEALTHCHECK --interval=30s --timeout=5s --start-period=5s --retries=3 \
-    CMD wget -qO- http://127.0.0.1:8080/login >/dev/null 2>&1 || exit 1
+    CMD wget -qO- http://127.0.0.1:8080/api/v1/session >/dev/null 2>&1 || exit 1
 
 ENTRYPOINT ["/usr/local/bin/vmt"]

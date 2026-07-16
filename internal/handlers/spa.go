@@ -8,9 +8,9 @@ import (
 	"vmt/web"
 )
 
-// spaHandler serves the built v2 SPA under /app. Real asset paths are served
+// spaHandler serves the built SPA from the root. Real asset paths are served
 // as files; anything else falls back to index.html so client-side routes
-// (/app/vehicles/3, …) deep-link correctly. If the SPA wasn't built into this
+// (/vehicles/3, …) deep-link correctly. If the SPA wasn't built into this
 // binary, the committed placeholder page explains how to build it.
 func spaHandler() http.Handler {
 	dist, err := fs.Sub(web.AppFS, "app/dist")
@@ -20,8 +20,7 @@ func spaHandler() http.Handler {
 	files := http.FileServer(http.FS(dist))
 
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		path := strings.TrimPrefix(r.URL.Path, "/app")
-		path = strings.TrimPrefix(path, "/")
+		path := strings.TrimPrefix(r.URL.Path, "/")
 		if path != "" {
 			if f, err := dist.Open(path); err == nil {
 				f.Close()
@@ -29,7 +28,6 @@ func spaHandler() http.Handler {
 				if strings.HasSuffix(path, ".webmanifest") {
 					w.Header().Set("Content-Type", "application/manifest+json")
 				}
-				r.URL.Path = "/" + path
 				files.ServeHTTP(w, r)
 				return
 			}

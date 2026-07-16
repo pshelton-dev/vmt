@@ -4,7 +4,6 @@ import (
 	"encoding/csv"
 	"fmt"
 	"io"
-	"net/http"
 	"strconv"
 	"strings"
 	"time"
@@ -189,77 +188,6 @@ func (res importResult) summary() string {
 		}
 	}
 	return msg + "."
-}
-
-// previewImport parses the uploaded CSV and shows what would happen, without
-// writing anything. The raw CSV is carried in the confirm form.
-func (s *Server) previewImport(w http.ResponseWriter, r *http.Request) {
-	if err := r.ParseMultipartForm(maxUpload); err != nil {
-		s.setFlash(w, "Upload too large or invalid.")
-		redirect(w, r, "/settings")
-		return
-	}
-	file, _, err := r.FormFile("csv")
-	if err != nil {
-		s.setFlash(w, "Choose a CSV file to import.")
-		redirect(w, r, "/settings")
-		return
-	}
-	defer file.Close()
-	raw, err := io.ReadAll(io.LimitReader(file, maxUpload))
-	if err != nil {
-		s.renderError(w, r, http.StatusInternalServerError, "could not read file")
-		return
-	}
-
-	rows, err := parseServiceRows(strings.NewReader(string(raw)))
-	if err != nil {
-		s.setFlash(w, "Import failed: "+err.Error())
-		redirect(w, r, "/settings")
-		return
-	}
-	annotated, newVehicles, wouldImport, skipped := s.planImport(rows)
-
-	s.render(w, r, "import_preview", View{
-		Title:  "Preview import",
-		Active: "settings",
-		Data: map[string]any{
-			"Rows":        annotated,
-			"NewVehicles": newVehicles,
-			"WouldImport": wouldImport,
-			"Skipped":     skipped,
-			"RawCSV":      string(raw),
-		},
-	})
-}
-
-// importData commits an import. It accepts the raw CSV from the preview confirm
-// form (csv_data) or, as a fallback, a freshly uploaded file (csv).
-func (s *Server) importData(w http.ResponseWriter, r *http.Request) {
-	// r.FormValue parses either a urlencoded body (the preview "Confirm" form,
-	// carrying csv_data) or a multipart body (a direct file upload).
-	var reader io.Reader
-	if data := r.FormValue("csv_data"); data != "" {
-		reader = strings.NewReader(data)
-	} else if file, _, err := r.FormFile("csv"); err == nil {
-		defer file.Close()
-		reader = io.LimitReader(file, maxUpload)
-	} else {
-		s.setFlash(w, "Choose a CSV file to import.")
-		redirect(w, r, "/settings")
-		return
-	}
-
-	rows, err := parseServiceRows(reader)
-	if err != nil {
-		s.setFlash(w, "Import failed: "+err.Error())
-		redirect(w, r, "/settings")
-		return
-	}
-
-	res := s.commitImport(rows)
-	s.setFlash(w, res.summary())
-	redirect(w, r, "/settings")
 }
 
 // commitImport writes parsed rows to the database, creating vehicles as

@@ -23,7 +23,7 @@ func (s *Server) backup(w http.ResponseWriter, r *http.Request) {
 	// giving a transactionally-consistent snapshot without locking out writes.
 	snap := filepath.Join(s.cfg.DataDir, fmt.Sprintf(".snapshot-%s.db", randName()))
 	if _, err := s.db.Exec(`VACUUM INTO ?`, snap); err != nil {
-		s.renderError(w, r, http.StatusInternalServerError, "could not snapshot database")
+		apiError(w, http.StatusInternalServerError, "could not snapshot database")
 		return
 	}
 	defer os.Remove(snap)
@@ -85,14 +85,12 @@ func addFileToTar(tw *tar.Writer, path, name string) error {
 // then restarts the process so everything re-opens against the restored data.
 func (s *Server) restore(w http.ResponseWriter, r *http.Request) {
 	if err := r.ParseMultipartForm(32 << 20); err != nil {
-		s.setFlash(w, "Upload failed.")
-		redirect(w, r, "/settings")
+		apiError(w, http.StatusBadRequest, "upload failed")
 		return
 	}
 	file, _, err := r.FormFile("backup")
 	if err != nil {
-		s.setFlash(w, "Choose a backup file to restore.")
-		redirect(w, r, "/settings")
+		apiError(w, http.StatusBadRequest, "choose a backup file to restore (multipart \"backup\" field)")
 		return
 	}
 	defer file.Close()
@@ -101,34 +99,31 @@ func (s *Server) restore(w http.ResponseWriter, r *http.Request) {
 	stage := filepath.Join(s.cfg.DataDir, ".restore-tmp")
 	_ = os.RemoveAll(stage)
 	if err := os.MkdirAll(stage, 0o755); err != nil {
-		s.renderError(w, r, http.StatusInternalServerError, "could not stage restore")
+		apiError(w, http.StatusInternalServerError, "could not stage restore")
 		return
 	}
 	defer os.RemoveAll(stage)
 
 	if err := extractArchive(io.LimitReader(file, maxRestore), stage); err != nil {
-		s.setFlash(w, "Invalid backup archive: "+err.Error())
-		redirect(w, r, "/settings")
+		apiError(w, http.StatusBadRequest, "invalid backup archive: "+err.Error())
 		return
 	}
 
 	stagedDB := filepath.Join(stage, "vmt.db")
 	if err := validateDB(stagedDB); err != nil {
-		s.setFlash(w, "Backup does not contain a valid database.")
-		redirect(w, r, "/settings")
+		apiError(w, http.StatusBadRequest, "backup does not contain a valid database")
 		return
 	}
 
 	if err := s.swapInRestore(stage, stagedDB); err != nil {
 		// The pre-restore copies (.prerestore) are left in place for recovery.
-		s.renderError(w, r, http.StatusInternalServerError, "restore failed: "+err.Error())
+		apiError(w, http.StatusInternalServerError, "restore failed: "+err.Error())
 		return
 	}
 
 	// Respond before exiting; the container's restart policy brings us back up
-	// against the restored data.
-	w.Header().Set("Content-Type", "text/html; charset=utf-8")
-	fmt.Fprint(w, restartHTML)
+	// against the restored data. The SPA shows a "restarting" note and reloads.
+	writeJSON(w, http.StatusOK, map[string]string{"status": "restarting"})
 	if f, ok := w.(http.Flusher); ok {
 		f.Flush()
 	}
@@ -237,14 +232,3 @@ func validateDB(path string) error {
 	var n int
 	return d.QueryRow(`SELECT count(*) FROM sqlite_master`).Scan(&n)
 }
-
-const restartHTML = `<!DOCTYPE html><html><head><meta charset="utf-8">
-<meta http-equiv="refresh" content="4; url=/">
-<title>Restoring · VMT</title>
-<link rel="stylesheet" href="/static/style.css"></head>
-<body><main class="centered"><div class="card auth-card">
-<h1>✅ Backup restored</h1>
-<p class="muted">VMT is restarting to load the restored data. This page will
-return to the dashboard automatically in a few seconds.</p>
-<a class="primary" href="/">Continue</a>
-</div></main></body></html>`

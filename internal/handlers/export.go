@@ -17,7 +17,7 @@ var serviceCSVHeader = []string{
 func (s *Server) exportAllServices(w http.ResponseWriter, r *http.Request) {
 	records, err := s.allServices()
 	if err != nil {
-		s.renderError(w, r, http.StatusInternalServerError, "could not load records")
+		apiError(w, http.StatusInternalServerError, "could not load records")
 		return
 	}
 	s.writeServiceCSV(w, "vmt-services-"+time.Now().Format("20060102")+".csv", records)
@@ -27,17 +27,17 @@ func (s *Server) exportAllServices(w http.ResponseWriter, r *http.Request) {
 func (s *Server) exportVehicleServices(w http.ResponseWriter, r *http.Request) {
 	id, err := pathID(r, "id")
 	if err != nil {
-		s.renderError(w, r, http.StatusBadRequest, "bad id")
+		apiError(w, http.StatusBadRequest, "bad id")
 		return
 	}
 	v, err := s.getVehicle(id)
 	if err != nil {
-		s.renderError(w, r, http.StatusNotFound, "vehicle not found")
+		apiError(w, http.StatusNotFound, "vehicle not found")
 		return
 	}
 	records, err := s.listServices(id)
 	if err != nil {
-		s.renderError(w, r, http.StatusInternalServerError, "could not load records")
+		apiError(w, http.StatusInternalServerError, "could not load records")
 		return
 	}
 	for i := range records {

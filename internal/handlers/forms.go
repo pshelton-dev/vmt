@@ -6,19 +6,7 @@ import (
 	"time"
 )
 
-// optInt parses an optional integer form field, returning nil when blank.
-func optInt(s string) *int {
-	s = strings.TrimSpace(s)
-	if s == "" {
-		return nil
-	}
-	v, err := strconv.Atoi(s)
-	if err != nil {
-		return nil
-	}
-	return &v
-}
-
+// optInt64 parses an optional integer field, returning nil when blank/invalid.
 func optInt64(s string) *int64 {
 	s = strings.TrimSpace(s)
 	if s == "" {
@@ -41,14 +29,4 @@ func optDate(s string) *string {
 		return nil
 	}
 	return &s
-}
-
-func parseInt64(s string) int64 {
-	v, _ := strconv.ParseInt(strings.TrimSpace(s), 10, 64)
-	return v
-}
-
-func parseFloat(s string) float64 {
-	v, _ := strconv.ParseFloat(strings.TrimSpace(s), 64)
-	return v
 }

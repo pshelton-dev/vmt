@@ -1,8 +1,6 @@
 package handlers
 
 import (
-	"html/template"
-	"net/http"
 	"os"
 	"path/filepath"
 	"time"
@@ -15,50 +13,8 @@ type reportRow struct {
 	Pct   int
 }
 
-func (s *Server) removeStored(name string) {
-	if name == "" {
-		return
-	}
-	_ = os.Remove(filepath.Join(s.cfg.UploadDir, name))
-}
-
-func (s *Server) reports(w http.ResponseWriter, r *http.Request) {
-	var total float64
-	var count int
-	_ = s.db.QueryRow(`SELECT COALESCE(SUM(cost),0), COUNT(*) FROM service_records`).Scan(&total, &count)
-
-	yearStart := time.Now().Format("2006") + "-01-01"
-	var yearCost float64
-	_ = s.db.QueryRow(`SELECT COALESCE(SUM(cost),0) FROM service_records WHERE date >= ?`, yearStart).Scan(&yearCost)
-
-	avg := 0.0
-	if count > 0 {
-		avg = total / float64(count)
-	}
-
-	byCategory := s.reportGroup(`
-		SELECT 0, category, COALESCE(SUM(cost),0) FROM service_records
-		WHERE cost > 0 GROUP BY category ORDER BY 3 DESC`, total)
-	byVehicle := s.reportGroup(`
-		SELECT v.id, v.name, COALESCE(SUM(sr.cost),0)
-		FROM service_records sr JOIN vehicles v ON v.id = sr.vehicle_id
-		WHERE sr.cost > 0 GROUP BY v.id ORDER BY 3 DESC`, total)
-
-	s.render(w, r, "reports", View{
-		Title:  "Cost reports",
-		Active: "reports",
-		Data: map[string]any{
-			"TotalCost":     total,
-			"YearCost":      yearCost,
-			"AvgPerService": avg,
-			"ServiceCount":  count,
-			"ByCategory":    byCategory,
-			"ByVehicle":     byVehicle,
-			"MonthlyChart":  s.monthlyChart(),
-		},
-	})
-}
-
+// reportGroup runs an aggregate query (id, label, total) and computes each
+// row's share of the grand total.
 func (s *Server) reportGroup(query string, grand float64) []reportRow {
 	rows, err := s.db.Query(query)
 	if err != nil {
@@ -112,19 +68,10 @@ func (s *Server) monthlyTotals() (keys, labels []string, values []float64) {
 	return keys, labels, values
 }
 
-// monthlyChart renders the last-12-months spending as an SVG bar chart.
-func (s *Server) monthlyChart() template.HTML {
-	_, labels, values := s.monthlyTotals()
-	any := false
-	for _, v := range values {
-		if v > 0 {
-			any = true
-			break
-		}
+// removeStored deletes an uploaded file from disk (best-effort).
+func (s *Server) removeStored(name string) {
+	if name == "" {
+		return
 	}
-	if !any {
-		return ""
-	}
-	cfg := s.cfg
-	return barChart(labels, values, func(v float64) string { return money(cfg, v) })
+	_ = os.Remove(filepath.Join(s.cfg.UploadDir, name))
 }
