@@ -133,6 +133,10 @@ func (s *Server) Routes() http.Handler {
 	// JSON API (v2 SPA); coexists with the HTML routes until cutover.
 	s.mountAPI(mux)
 
+	// The v2 SPA lives under /app until it replaces the HTML UI at /.
+	mux.Handle("/app/", spaHandler())
+	mux.Handle("GET /app", http.RedirectHandler("/app/", http.StatusMovedPermanently))
+
 	return logRequests(mux)
 }
 

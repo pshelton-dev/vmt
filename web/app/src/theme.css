@@ -1,0 +1,92 @@
+@import "tailwindcss";
+
+/* ---- design tokens ----
+   Light is the default; dark applies via prefers-color-scheme, and either can
+   be forced with data-theme on <html> (the Settings toggle). Tailwind utilities
+   (bg-surface, text-muted, …) map onto these variables below. */
+:root {
+  --bg: #f6f7f9;
+  --surface: #ffffff;
+  --surface-2: #eef0f3;
+  --border: #dde1e7;
+  --text: #1a222c;
+  --muted: #5c6a7a;
+  --primary: #2563eb;
+  --primary-strong: #1d4ed8;
+  --danger: #dc2626;
+  --ok: #16a34a;
+  --soon: #ca8a04;
+  --due: #ea580c;
+  --overdue: #dc2626;
+}
+@media (prefers-color-scheme: dark) {
+  :root {
+    --bg: #0f1419;
+    --surface: #1a212b;
+    --surface-2: #232c38;
+    --border: #2d3744;
+    --text: #e6edf3;
+    --muted: #8b98a9;
+    --primary: #3b82f6;
+    --primary-strong: #2563eb;
+    --danger: #ef4444;
+    --ok: #22c55e;
+    --soon: #eab308;
+    --due: #f97316;
+    --overdue: #ef4444;
+  }
+}
+:root[data-theme="light"] {
+  --bg: #f6f7f9;
+  --surface: #ffffff;
+  --surface-2: #eef0f3;
+  --border: #dde1e7;
+  --text: #1a222c;
+  --muted: #5c6a7a;
+  --primary: #2563eb;
+  --primary-strong: #1d4ed8;
+  --danger: #dc2626;
+  --ok: #16a34a;
+  --soon: #ca8a04;
+  --due: #ea580c;
+  --overdue: #dc2626;
+}
+:root[data-theme="dark"] {
+  --bg: #0f1419;
+  --surface: #1a212b;
+  --surface-2: #232c38;
+  --border: #2d3744;
+  --text: #e6edf3;
+  --muted: #8b98a9;
+  --primary: #3b82f6;
+  --primary-strong: #2563eb;
+  --danger: #ef4444;
+  --ok: #22c55e;
+  --soon: #eab308;
+  --due: #f97316;
+  --overdue: #ef4444;
+}
+
+/* Expose the tokens to Tailwind as first-class colors. */
+@theme inline {
+  --color-bg: var(--bg);
+  --color-surface: var(--surface);
+  --color-surface-2: var(--surface-2);
+  --color-border: var(--border);
+  --color-text: var(--text);
+  --color-muted: var(--muted);
+  --color-primary: var(--primary);
+  --color-primary-strong: var(--primary-strong);
+  --color-danger: var(--danger);
+  --color-ok: var(--ok);
+  --color-soon: var(--soon);
+  --color-due: var(--due);
+  --color-overdue: var(--overdue);
+}
+
+html,
+body {
+  background: var(--bg);
+  color: var(--text);
+  -webkit-text-size-adjust: 100%;
+}

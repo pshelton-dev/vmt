@@ -1,3 +1,11 @@
+# ---- frontend build stage ----
+FROM node:22-alpine AS frontend
+WORKDIR /src/web/app
+COPY web/app/package.json web/app/package-lock.json ./
+RUN npm ci
+COPY web/app/ .
+RUN npm run build
+
 # ---- build stage ----
 FROM golang:1.23-alpine AS build
 WORKDIR /src
@@ -7,7 +15,9 @@ COPY go.mod go.sum ./
 RUN go mod download
 
 # Build a static binary (modernc.org/sqlite is pure Go, so no CGO needed).
+# The built SPA is embedded via web/embed.go (go:embed all:app/dist).
 COPY . .
+COPY --from=frontend /src/web/app/dist ./web/app/dist
 RUN CGO_ENABLED=0 GOOS=linux go build -trimpath -ldflags "-s -w" -o /out/vmt .
 
 # ---- runtime stage ----
