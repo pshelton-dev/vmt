@@ -1,6 +1,7 @@
 import { NavLink, Outlet } from "react-router-dom";
 import { useQueryClient } from "@tanstack/react-query";
 import { api } from "../lib/api";
+import QuickLog from "./QuickLog";
 
 const tabs = [
   { to: "/", label: "Dashboard", icon: "🏠", end: true },
@@ -53,6 +54,8 @@ export default function Layout() {
       <main className="mx-auto max-w-5xl px-4 py-5">
         <Outlet />
       </main>
+
+      <QuickLog />
 
       {/* Bottom tab bar (phones) */}
       <nav className="fixed inset-x-0 bottom-0 z-10 border-t border-border bg-surface pb-[env(safe-area-inset-bottom)] md:hidden">

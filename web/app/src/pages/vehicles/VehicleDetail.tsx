@@ -13,7 +13,9 @@ import {
 import { formatDate, miles, money } from "../../lib/format";
 import StatusBadge from "../../components/StatusBadge";
 import { Card } from "../../components/form";
+import Lightbox from "../../components/Lightbox";
 import ReferenceEditor from "./ReferenceEditor";
+import { downscaleImage } from "../../lib/image";
 
 interface Detail {
   vehicle: Vehicle;
@@ -270,9 +272,10 @@ function RemindersTab({ d, refresh }: { d: Detail; refresh: () => void }) {
 
 function FilesTab({ d, refresh }: { d: Detail; refresh: () => void }) {
   const v = d.vehicle;
+  const [viewer, setViewer] = useState<number | null>(null);
   const upload = useMutation({
-    mutationFn: ({ field, file, path }: { field: string; file: File; path: string }) =>
-      api.upload(path, field, file),
+    mutationFn: async ({ field, file, path }: { field: string; file: File; path: string }) =>
+      api.upload(path, field, field === "photo" ? await downscaleImage(file) : file),
     onSuccess: refresh,
   });
   const delAtt = useMutation({
@@ -310,9 +313,14 @@ function FilesTab({ d, refresh }: { d: Detail; refresh: () => void }) {
           <p className="py-4 text-center text-muted">No photos yet.</p>
         ) : (
           <div className="flex snap-x gap-3 overflow-x-auto pb-1">
-            {d.photos.map((p) => (
+            {d.photos.map((p, i) => (
               <div key={p.id} className="relative shrink-0 snap-start">
-                <img src={`/api/v1/files/${p.id}`} alt={p.original_name} className="h-28 w-40 rounded-lg object-cover" />
+                <img
+                  src={`/api/v1/files/${p.id}`}
+                  alt={p.original_name}
+                  onClick={() => setViewer(i)}
+                  className="h-28 w-40 cursor-zoom-in rounded-lg object-cover"
+                />
                 <div className="absolute right-1 top-1 flex gap-1">
                   <button
                     onClick={() => setPrimary.mutate(p.id)}
@@ -331,6 +339,9 @@ function FilesTab({ d, refresh }: { d: Detail; refresh: () => void }) {
               </div>
             ))}
           </div>
+        )}
+        {viewer !== null && (
+          <Lightbox photos={d.photos} start={viewer} close={() => setViewer(null)} />
         )}
       </Card>
 

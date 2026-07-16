@@ -3,6 +3,7 @@ import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useNavigate, useParams } from "react-router-dom";
 import { api, ApiError, type Meta, type ServiceRecord, type Vehicle } from "../../lib/api";
 import { Card, Field, PrimaryButton, SecondaryButton, Select, TextArea, TextInput } from "../../components/form";
+import { downscaleImage } from "../../lib/image";
 
 interface FormState {
   date: string;
@@ -84,7 +85,7 @@ export default function ServiceForm() {
       const sr = isNew
         ? await api.post<ServiceRecord>(`/vehicles/${vid}/services`, body)
         : await api.put<ServiceRecord>(`/services/${sid}`, body);
-      if (receipt) await api.upload(`/services/${sr.id}/attachments`, "document", receipt);
+      if (receipt) await api.upload(`/services/${sr.id}/attachments`, "document", await downscaleImage(receipt));
       return sr;
     },
     onSuccess: (sr) => {

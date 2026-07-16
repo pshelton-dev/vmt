@@ -3,6 +3,7 @@ import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useNavigate, useParams } from "react-router-dom";
 import { api, ApiError, type Vehicle } from "../../lib/api";
 import { useVehicleData, yearOptions } from "../../lib/vehicleData";
+import { downscaleImage } from "../../lib/image";
 import { Card, Field, PrimaryButton, SecondaryButton, Select, TextArea, TextInput } from "../../components/form";
 
 interface FormState {
@@ -74,7 +75,7 @@ export default function VehicleForm() {
       const v = isNew
         ? await api.post<Vehicle>("/vehicles", body)
         : await api.put<Vehicle>(`/vehicles/${id}`, body);
-      if (photo) await api.upload(`/vehicles/${v.id}/photos`, "photo", photo);
+      if (photo) await api.upload(`/vehicles/${v.id}/photos`, "photo", await downscaleImage(photo));
       return v;
     },
     onSuccess: (v) => {
