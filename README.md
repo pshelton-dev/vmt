@@ -4,10 +4,26 @@ A self-hosted web app for tracking vehicle maintenance: identity details (incl.
 VIN and photos), a full service log with reminders, document/receipt storage,
 and cost reports with charts.
 
-Built as a single Go binary with an embedded SQLite database — no external
-database server, no Node build step. The app serves plain HTTP on a single port;
-put it behind your own reverse proxy / TLS terminator (it's configured for
+Built as a single Go binary with an embedded SQLite database and an embedded
+React UI (an installable PWA) — no external database server, nothing to run but
+the one binary. The app serves plain HTTP on a single port; put it behind your
+own reverse proxy / TLS terminator (it's configured for
 `vmt.int.paulandjenn.com`).
+
+## Screenshots
+
+| Dashboard | Vehicles | Vehicle detail |
+|---|---|---|
+| ![Dashboard](docs/screenshots/dashboard.png) | ![Vehicles](docs/screenshots/vehicles.png) | ![Vehicle detail](docs/screenshots/vehicle-detail.png) |
+
+| Reports | Reminders | Settings |
+|---|---|---|
+| ![Reports](docs/screenshots/reports.png) | ![Reminders](docs/screenshots/reminders.png) | ![Settings](docs/screenshots/settings.png) |
+
+On phones the app switches to a bottom tab bar with a quick-log button, and can
+be installed to the home screen:
+
+<img src="docs/screenshots/mobile-dashboard.png" alt="Mobile dashboard" width="300">
 
 ## Features
 
