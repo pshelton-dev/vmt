@@ -91,6 +91,20 @@ func (s *Server) apiCreateService(w http.ResponseWriter, r *http.Request) {
 	writeJSON(w, http.StatusCreated, created)
 }
 
+func (s *Server) apiGetService(w http.ResponseWriter, r *http.Request) {
+	id, err := pathID(r, "id")
+	if err != nil {
+		apiError(w, http.StatusBadRequest, "bad id")
+		return
+	}
+	sr, err := s.getService(id)
+	if err != nil {
+		apiError(w, http.StatusNotFound, "service not found")
+		return
+	}
+	writeJSON(w, http.StatusOK, sr)
+}
+
 func (s *Server) apiUpdateService(w http.ResponseWriter, r *http.Request) {
 	id, err := pathID(r, "id")
 	if err != nil {

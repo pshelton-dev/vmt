@@ -8,6 +8,8 @@ import Vehicles from "./pages/Vehicles";
 import Reminders from "./pages/Reminders";
 import Reports from "./pages/Reports";
 import Settings from "./pages/Settings";
+import ServiceForm from "./pages/vehicles/ServiceForm";
+import ReminderForm from "./pages/vehicles/ReminderForm";
 
 export default function App() {
   const session = useQuery({
@@ -39,7 +41,9 @@ export default function App() {
       <Route element={<Layout />}>
         <Route index element={<Dashboard />} />
         <Route path="vehicles/*" element={<Vehicles />} />
+        <Route path="services/:sid/edit" element={<ServiceForm />} />
         <Route path="reminders" element={<Reminders />} />
+        <Route path="reminders/:rid/edit" element={<ReminderForm />} />
         <Route path="reports" element={<Reports />} />
         <Route path="settings" element={<Settings />} />
         <Route path="*" element={<Navigate to="/" replace />} />

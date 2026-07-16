@@ -1,9 +1,19 @@
-// Phase 3 fills this in: card grid, detail view with tabs, add/edit forms.
+import { Route, Routes } from "react-router-dom";
+import VehicleList from "./vehicles/VehicleList";
+import VehicleForm from "./vehicles/VehicleForm";
+import VehicleDetail from "./vehicles/VehicleDetail";
+import ServiceForm from "./vehicles/ServiceForm";
+import ReminderForm from "./vehicles/ReminderForm";
+
 export default function Vehicles() {
   return (
-    <div>
-      <h1 className="text-2xl font-bold">Vehicles</h1>
-      <p className="mt-3 text-muted">Coming in Phase 3 — use the classic UI meanwhile.</p>
-    </div>
+    <Routes>
+      <Route index element={<VehicleList />} />
+      <Route path="new" element={<VehicleForm />} />
+      <Route path=":id" element={<VehicleDetail />} />
+      <Route path=":id/edit" element={<VehicleForm />} />
+      <Route path=":vid/services/new" element={<ServiceForm />} />
+      <Route path=":vid/reminders/new" element={<ReminderForm />} />
+    </Routes>
   );
 }

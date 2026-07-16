@@ -45,6 +45,24 @@ func (s *Server) apiListReminders(w http.ResponseWriter, r *http.Request) {
 	writeJSON(w, http.StatusOK, emptyIfNil(rems))
 }
 
+func (s *Server) apiGetReminder(w http.ResponseWriter, r *http.Request) {
+	id, err := pathID(r, "id")
+	if err != nil {
+		apiError(w, http.StatusBadRequest, "bad id")
+		return
+	}
+	rem, err := s.getReminder(id)
+	if err != nil {
+		apiError(w, http.StatusNotFound, "reminder not found")
+		return
+	}
+	if v, err := s.getVehicle(rem.VehicleID); err == nil {
+		rem.VehicleName = v.Name
+		annotateReminder(&rem, v.Odometer)
+	}
+	writeJSON(w, http.StatusOK, rem)
+}
+
 func (s *Server) apiCreateReminder(w http.ResponseWriter, r *http.Request) {
 	id, err := pathID(r, "id")
 	if err != nil {

@@ -19,3 +19,4 @@ web/app/node_modules/
 
 # Local handoff / pickup notes (obfuscated secrets, internal infra)
 handoff.md
+web/app/tsconfig.tsbuildinfo

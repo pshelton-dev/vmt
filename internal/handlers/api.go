@@ -87,11 +87,13 @@ func (s *Server) mountAPI(mux *http.ServeMux) {
 
 	mux.HandleFunc("GET /api/v1/vehicles/{id}/services", a(s.apiListServices))
 	mux.HandleFunc("POST /api/v1/vehicles/{id}/services", a(s.apiCreateService))
+	mux.HandleFunc("GET /api/v1/services/{id}", a(s.apiGetService))
 	mux.HandleFunc("PUT /api/v1/services/{id}", a(s.apiUpdateService))
 	mux.HandleFunc("DELETE /api/v1/services/{id}", a(s.apiDeleteService))
 	mux.HandleFunc("POST /api/v1/services/{id}/attachments", a(s.apiUploadServiceAttachment))
 
 	mux.HandleFunc("GET /api/v1/reminders", a(s.apiListReminders))
+	mux.HandleFunc("GET /api/v1/reminders/{id}", a(s.apiGetReminder))
 	mux.HandleFunc("POST /api/v1/vehicles/{id}/reminders", a(s.apiCreateReminder))
 	mux.HandleFunc("PUT /api/v1/reminders/{id}", a(s.apiUpdateReminder))
 	mux.HandleFunc("POST /api/v1/reminders/{id}/complete", a(s.apiCompleteReminder))
