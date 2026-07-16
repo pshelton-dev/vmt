@@ -4,9 +4,11 @@ import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { BrowserRouter } from "react-router-dom";
 import App from "./App";
 import { initTheme } from "./lib/theme";
+import { registerSW } from "./lib/sw";
 import "./theme.css";
 
 initTheme();
+registerSW();
 
 const queryClient = new QueryClient({
   defaultOptions: {

@@ -25,6 +25,10 @@ func spaHandler() http.Handler {
 		if path != "" {
 			if f, err := dist.Open(path); err == nil {
 				f.Close()
+				// Go's mime table doesn't know .webmanifest.
+				if strings.HasSuffix(path, ".webmanifest") {
+					w.Header().Set("Content-Type", "application/manifest+json")
+				}
 				r.URL.Path = "/" + path
 				files.ServeHTTP(w, r)
 				return
