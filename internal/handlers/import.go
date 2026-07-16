@@ -257,6 +257,14 @@ func (s *Server) importData(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	res := s.commitImport(rows)
+	s.setFlash(w, res.summary())
+	redirect(w, r, "/settings")
+}
+
+// commitImport writes parsed rows to the database, creating vehicles as
+// needed, and reports what happened.
+func (s *Server) commitImport(rows []parsedRow) importResult {
 	var res importResult
 	cache := map[string]int64{}
 	for _, row := range rows {
@@ -286,9 +294,7 @@ func (s *Server) importData(w http.ResponseWriter, r *http.Request) {
 		}
 		res.Imported++
 	}
-
-	s.setFlash(w, res.summary())
-	redirect(w, r, "/settings")
+	return res
 }
 
 // resolveVehicle returns the id for a vehicle name, creating it if necessary.

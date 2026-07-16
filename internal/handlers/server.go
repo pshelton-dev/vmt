@@ -130,6 +130,9 @@ func (s *Server) Routes() http.Handler {
 	mux.HandleFunc("GET /files/{id}", auth(s.serveFile))
 	mux.HandleFunc("POST /attachments/{id}/delete", auth(s.deleteAttachment))
 
+	// JSON API (v2 SPA); coexists with the HTML routes until cutover.
+	s.mountAPI(mux)
+
 	return logRequests(mux)
 }
 

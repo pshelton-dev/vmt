@@ -79,21 +79,19 @@ func (s *Server) reportGroup(query string, grand float64) []reportRow {
 	return out
 }
 
-// monthlyChart sums spending into the last 12 calendar-month buckets.
-func (s *Server) monthlyChart() template.HTML {
+// monthlyTotals sums spending into the last 12 calendar-month buckets,
+// returning month keys (yyyy-mm), short labels and totals.
+func (s *Server) monthlyTotals() (keys, labels []string, values []float64) {
 	now := time.Now()
-	type bucket struct {
-		key   string
-		label string
-		total float64
-	}
-	buckets := make([]bucket, 12)
+	keys = make([]string, 12)
+	labels = make([]string, 12)
+	values = make([]float64, 12)
 	index := map[string]int{}
 	for i := 0; i < 12; i++ {
 		m := now.AddDate(0, -(11 - i), 0)
-		key := m.Format("2006-01")
-		buckets[i] = bucket{key: key, label: m.Format("Jan")}
-		index[key] = i
+		keys[i] = m.Format("2006-01")
+		labels[i] = m.Format("Jan")
+		index[keys[i]] = i
 	}
 	start := now.AddDate(0, -11, 0).Format("2006-01") + "-01"
 	rows, err := s.db.Query(`
@@ -106,19 +104,22 @@ func (s *Server) monthlyChart() template.HTML {
 			var sum float64
 			if rows.Scan(&ym, &sum) == nil {
 				if i, ok := index[ym]; ok {
-					buckets[i].total = sum
+					values[i] = sum
 				}
 			}
 		}
 	}
-	labels := make([]string, 12)
-	values := make([]float64, 12)
+	return keys, labels, values
+}
+
+// monthlyChart renders the last-12-months spending as an SVG bar chart.
+func (s *Server) monthlyChart() template.HTML {
+	_, labels, values := s.monthlyTotals()
 	any := false
-	for i, b := range buckets {
-		labels[i] = b.label
-		values[i] = b.total
-		if b.total > 0 {
+	for _, v := range values {
+		if v > 0 {
 			any = true
+			break
 		}
 	}
 	if !any {
