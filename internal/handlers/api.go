@@ -76,8 +76,11 @@ func (s *Server) mountAPI(mux *http.ServeMux) {
 	mux.HandleFunc("GET /api/v1/dashboard", a(s.apiDashboard))
 
 	mux.HandleFunc("GET /api/v1/vehicles", a(s.apiListVehicles))
+	mux.HandleFunc("GET /api/v1/vehicles/archived", a(s.apiListArchivedVehicles))
 	mux.HandleFunc("POST /api/v1/vehicles", a(s.apiCreateVehicle))
 	mux.HandleFunc("GET /api/v1/vehicles/{id}", a(s.apiGetVehicle))
+	mux.HandleFunc("POST /api/v1/vehicles/{id}/archive", a(s.apiArchiveVehicle))
+	mux.HandleFunc("POST /api/v1/vehicles/{id}/unarchive", a(s.apiUnarchiveVehicle))
 	mux.HandleFunc("PUT /api/v1/vehicles/{id}", a(s.apiUpdateVehicle))
 	mux.HandleFunc("DELETE /api/v1/vehicles/{id}", a(s.apiDeleteVehicle))
 	mux.HandleFunc("POST /api/v1/vehicles/{id}/photos", a(s.apiUploadPhoto))

@@ -61,6 +61,7 @@ export interface Vehicle {
   purchase_date: string | null;
   notes: string;
   photo_id: number | null;
+  archived: boolean;
   total_cost: number;
   service_count: number;
   due_reminders: number;

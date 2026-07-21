@@ -16,6 +16,7 @@ type Vehicle struct {
 	PurchaseDate *string `json:"purchase_date"` // ISO yyyy-mm-dd
 	Notes        string  `json:"notes"`
 	PhotoID      *int64  `json:"photo_id"`
+	Archived     bool    `json:"archived"`
 	CreatedAt    time.Time `json:"-"`
 
 	// Derived / joined fields (not stored on the vehicles row).

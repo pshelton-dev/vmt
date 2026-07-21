@@ -21,7 +21,7 @@ var schema string
 // or migrate() changes; an existing database with an older version gets a
 // pre-upgrade snapshot (VACUUM INTO <datadir>/backups/) before any schema
 // change is applied, so a bad upgrade is always recoverable in place.
-const schemaVersion = 1
+const schemaVersion = 2
 
 // keepSnapshots is how many pre-upgrade snapshots to retain.
 const keepSnapshots = 5
@@ -114,6 +114,7 @@ func migrate(d *sql.DB) error {
 	for _, c := range []col{
 		{"reminders", "notify", "INTEGER NOT NULL DEFAULT 0"},
 		{"reminders", "last_notified", "TEXT"},
+		{"vehicles", "archived", "INTEGER NOT NULL DEFAULT 0"},
 	} {
 		if err := addColumnIfMissing(d, c.table, c.name, c.def); err != nil {
 			return err

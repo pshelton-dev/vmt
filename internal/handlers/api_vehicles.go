@@ -57,6 +57,48 @@ func (s *Server) apiListVehicles(w http.ResponseWriter, r *http.Request) {
 	writeJSON(w, http.StatusOK, emptyIfNil(vehicles))
 }
 
+// apiListArchivedVehicles returns the archived (no-longer-owned) vehicles.
+func (s *Server) apiListArchivedVehicles(w http.ResponseWriter, r *http.Request) {
+	vehicles, err := s.listArchivedVehicles()
+	if err != nil {
+		apiError(w, http.StatusInternalServerError, "could not load vehicles")
+		return
+	}
+	writeJSON(w, http.StatusOK, emptyIfNil(vehicles))
+}
+
+// apiArchiveVehicle marks a vehicle as archived; apiUnarchiveVehicle restores
+// it. Records are preserved either way.
+func (s *Server) apiArchiveVehicle(w http.ResponseWriter, r *http.Request) {
+	s.setArchived(w, r, true)
+}
+
+func (s *Server) apiUnarchiveVehicle(w http.ResponseWriter, r *http.Request) {
+	s.setArchived(w, r, false)
+}
+
+func (s *Server) setArchived(w http.ResponseWriter, r *http.Request, archived bool) {
+	id, err := pathID(r, "id")
+	if err != nil {
+		apiError(w, http.StatusBadRequest, "bad id")
+		return
+	}
+	if _, err := s.getVehicle(id); err != nil {
+		apiError(w, http.StatusNotFound, "vehicle not found")
+		return
+	}
+	if err := s.setVehicleArchived(id, archived); err != nil {
+		apiError(w, http.StatusInternalServerError, "could not update vehicle")
+		return
+	}
+	updated, err := s.getVehicle(id)
+	if err != nil {
+		apiError(w, http.StatusInternalServerError, "could not load vehicle")
+		return
+	}
+	writeJSON(w, http.StatusOK, updated)
+}
+
 func (s *Server) apiCreateVehicle(w http.ResponseWriter, r *http.Request) {
 	var in vehicleInput
 	if err := decodeJSON(r, &in); err != nil {

@@ -32,6 +32,10 @@ be installed to the home screen:
   and model offer suggestions from a bundled offline list of cars **and
   motorcycles** (model filtered by the chosen make) while still accepting any
   custom value you type; model year is a dropdown.
+- **Archive** — sold or retired a vehicle? Archive it instead of deleting. It
+  keeps every record but drops out of the vehicle list, the dashboard's running
+  totals and the reminders, living on its own **Archived vehicles** page. Its
+  past spending still counts in the cost reports, and unarchiving restores it.
 - **Service log** — date, odometer, category, description, vendor, and cost per
   record. Odometer auto-advances the vehicle's current reading.
 - **Reminders** — by due date, by odometer, or recurring (every N months/miles).

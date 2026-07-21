@@ -55,6 +55,11 @@ export default function VehicleDetail() {
     },
   });
 
+  const archive = useMutation({
+    mutationFn: (action: "archive" | "unarchive") => api.post(`/vehicles/${id}/${action}`),
+    onSuccess: () => qc.invalidateQueries(),
+  });
+
   if (q.isLoading) return <p className="text-muted">Loading…</p>;
   if (q.isError || !q.data) return <p className="text-danger">Vehicle not found.</p>;
 
@@ -75,7 +80,14 @@ export default function VehicleDetail() {
       {/* Header */}
       <div className="flex flex-wrap items-start justify-between gap-3">
         <div>
-          <h1 className="text-2xl font-bold">{v.name}</h1>
+          <div className="flex items-center gap-2">
+            <h1 className="text-2xl font-bold">{v.name}</h1>
+            {v.archived && (
+              <span className="rounded-full bg-surface-2 px-2 py-0.5 text-xs font-semibold text-muted">
+                Archived
+              </span>
+            )}
+          </div>
           <p className="text-muted">
             {[v.year, v.make, v.model].filter(Boolean).join(" ")}
             {v.color && ` · ${v.color}`}
@@ -86,6 +98,13 @@ export default function VehicleDetail() {
             Edit
           </Link>
           <button
+            onClick={() => archive.mutate(v.archived ? "unarchive" : "archive")}
+            disabled={archive.isPending}
+            className="min-h-11 rounded-lg border border-border px-4 hover:border-muted disabled:opacity-50"
+          >
+            {v.archived ? "Unarchive" : "Archive"}
+          </button>
+          <button
             onClick={() => {
               if (confirm("Delete this vehicle and all its records?")) del.mutate();
             }}
@@ -95,6 +114,14 @@ export default function VehicleDetail() {
           </button>
         </div>
       </div>
+
+      {v.archived && (
+        <div className="rounded-xl border border-border bg-surface-2 p-3 text-sm text-muted">
+          This vehicle is archived — you no longer own it. Its records are kept and still
+          count in Reports, but it’s left out of the fleet list, dashboard totals and reminders.
+          Use <span className="font-semibold text-text">Unarchive</span> to restore it.
+        </div>
+      )}
 
       {/* Photo + facts */}
       <div className="grid grid-cols-1 gap-4 md:grid-cols-[320px_1fr]">

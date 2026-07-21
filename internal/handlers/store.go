@@ -51,17 +51,30 @@ func toStr(n sql.NullString) *string {
 
 // ---- vehicles ----
 
-// listVehicles returns all vehicles with derived totals, newest first.
+// listVehicles returns the actively-owned vehicles (archived ones excluded)
+// with derived totals, ordered by name.
 func (s *Server) listVehicles() ([]models.Vehicle, error) {
+	return s.vehiclesWhere("v.archived = 0")
+}
+
+// listArchivedVehicles returns vehicles that have been archived (no longer
+// owned) with derived totals, ordered by name.
+func (s *Server) listArchivedVehicles() ([]models.Vehicle, error) {
+	return s.vehiclesWhere("v.archived = 1")
+}
+
+// vehiclesWhere runs the vehicle-list query with the given WHERE predicate.
+func (s *Server) vehiclesWhere(where string) ([]models.Vehicle, error) {
 	rows, err := s.db.Query(`
 		SELECT v.id, v.name, v.make, v.model, v.year, v.vin, v.license_plate,
-		       v.color, v.odometer, v.purchase_date, v.notes, v.photo_id,
+		       v.color, v.odometer, v.purchase_date, v.notes, v.photo_id, v.archived,
 		       COALESCE(sc.cnt,0), COALESCE(sc.total,0)
 		FROM vehicles v
 		LEFT JOIN (
 			SELECT vehicle_id, COUNT(*) cnt, SUM(cost) total
 			FROM service_records GROUP BY vehicle_id
 		) sc ON sc.vehicle_id = v.id
+		WHERE ` + where + `
 		ORDER BY v.name COLLATE NOCASE`)
 	if err != nil {
 		return nil, err
@@ -81,7 +94,7 @@ func (s *Server) listVehicles() ([]models.Vehicle, error) {
 func (s *Server) getVehicle(id int64) (models.Vehicle, error) {
 	row := s.db.QueryRow(`
 		SELECT v.id, v.name, v.make, v.model, v.year, v.vin, v.license_plate,
-		       v.color, v.odometer, v.purchase_date, v.notes, v.photo_id,
+		       v.color, v.odometer, v.purchase_date, v.notes, v.photo_id, v.archived,
 		       COALESCE(sc.cnt,0), COALESCE(sc.total,0)
 		FROM vehicles v
 		LEFT JOIN (
@@ -98,8 +111,9 @@ func scanVehicle(r scanner) (models.Vehicle, error) {
 	var v models.Vehicle
 	var year, photoID sql.NullInt64
 	var purchase sql.NullString
+	var archived int
 	err := r.Scan(&v.ID, &v.Name, &v.Make, &v.Model, &year, &v.VIN, &v.LicensePlate,
-		&v.Color, &v.Odometer, &purchase, &v.Notes, &photoID,
+		&v.Color, &v.Odometer, &purchase, &v.Notes, &photoID, &archived,
 		&v.ServiceCount, &v.TotalCost)
 	if err != nil {
 		return v, err
@@ -107,6 +121,7 @@ func scanVehicle(r scanner) (models.Vehicle, error) {
 	v.Year = toInt(year)
 	v.PhotoID = toI64(photoID)
 	v.PurchaseDate = toStr(purchase)
+	v.Archived = archived != 0
 	return v, nil
 }
 
@@ -147,6 +162,14 @@ func (s *Server) vehicleIDByName(name string) (int64, bool) {
 		return 0, false
 	}
 	return id, true
+}
+
+// setVehicleArchived flags a vehicle as archived (no longer owned) or restores
+// it. Records are untouched; the flag only controls where it's listed and
+// whether it counts toward active fleet totals and reminders.
+func (s *Server) setVehicleArchived(id int64, archived bool) error {
+	_, err := s.db.Exec(`UPDATE vehicles SET archived=? WHERE id=?`, boolInt(archived), id)
+	return err
 }
 
 func (s *Server) setVehiclePhoto(vehicleID, photoID int64) error {
@@ -260,12 +283,15 @@ func (s *Server) allServices() ([]models.ServiceRecord, error) {
 	return out, rows.Err()
 }
 
-// recentServices returns the most recent records across all vehicles.
+// recentServices returns the most recent records across the actively-owned
+// vehicles. Archived ones are left out so the dashboard feed matches the
+// counts and totals beside it.
 func (s *Server) recentServices(limit int) ([]models.ServiceRecord, error) {
 	rows, err := s.db.Query(`
 		SELECT sr.id, sr.vehicle_id, sr.date, sr.odometer, sr.category, sr.description,
 		       sr.vendor, sr.cost, sr.notes, v.name
 		FROM service_records sr JOIN vehicles v ON v.id = sr.vehicle_id
+		WHERE v.archived = 0
 		ORDER BY sr.date DESC, sr.id DESC LIMIT ?`, limit)
 	if err != nil {
 		return nil, err
@@ -304,7 +330,7 @@ func (s *Server) listAllReminders() ([]models.Reminder, error) {
 		SELECT r.id, r.vehicle_id, r.title, r.due_date, r.due_odometer, r.interval_months,
 		       r.interval_miles, r.notes, r.completed, r.notify, r.last_notified, v.name, v.odometer
 		FROM reminders r JOIN vehicles v ON v.id = r.vehicle_id
-		WHERE r.completed=0`)
+		WHERE r.completed=0 AND v.archived=0`)
 	if err != nil {
 		return nil, err
 	}

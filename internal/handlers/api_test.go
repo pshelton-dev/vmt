@@ -194,6 +194,108 @@ func TestAPIVehiclesCRUD(t *testing.T) {
 	want(t, w, http.StatusNotFound)
 }
 
+// TestAPIVehicleArchive covers archiving a vehicle no longer owned: it leaves
+// the active list, dashboard totals and reminders, but keeps its records and
+// still counts in the (historical) reports.
+func TestAPIVehicleArchive(t *testing.T) {
+	h, c := newTestAPI(t)
+	kept := makeVehicle(t, h, c, "Keeper")
+	sold := makeVehicle(t, h, c, "Sold")
+
+	// $100 of work on each, and a due reminder on the one we'll archive.
+	for _, id := range []int64{kept, sold} {
+		w := call(t, h, c, "POST", fmt.Sprintf("/api/v1/vehicles/%d/services", id), map[string]any{
+			"date": time.Now().Format("2006-01-02"), "description": "work",
+			"category": "Repair", "cost": 100,
+		})
+		want(t, w, http.StatusCreated)
+	}
+	w := call(t, h, c, "POST", fmt.Sprintf("/api/v1/vehicles/%d/reminders", sold), map[string]any{
+		"title": "Overdue thing", "due_date": time.Now().AddDate(0, 0, -30).Format("2006-01-02"),
+	})
+	want(t, w, http.StatusCreated)
+
+	// Archive it.
+	w = call(t, h, c, "POST", fmt.Sprintf("/api/v1/vehicles/%d/archive", sold), nil)
+	want(t, w, http.StatusOK)
+	var arch map[string]any
+	decode(t, w, &arch)
+	if arch["archived"] != true {
+		t.Fatalf("expected archived=true, got %v", arch["archived"])
+	}
+
+	// Gone from the active list, present in the archived list.
+	w = call(t, h, c, "GET", "/api/v1/vehicles", nil)
+	want(t, w, http.StatusOK)
+	var active []map[string]any
+	decode(t, w, &active)
+	if len(active) != 1 || active[0]["name"] != "Keeper" {
+		t.Fatalf("active list should hold only Keeper, got %v", active)
+	}
+	w = call(t, h, c, "GET", "/api/v1/vehicles/archived", nil)
+	want(t, w, http.StatusOK)
+	var archived []map[string]any
+	decode(t, w, &archived)
+	if len(archived) != 1 || archived[0]["name"] != "Sold" {
+		t.Fatalf("archived list should hold only Sold, got %v", archived)
+	}
+
+	// Its records survive and are still reachable.
+	w = call(t, h, c, "GET", fmt.Sprintf("/api/v1/vehicles/%d", sold), nil)
+	want(t, w, http.StatusOK)
+	var detail struct {
+		Services []map[string]any `json:"services"`
+	}
+	decode(t, w, &detail)
+	if len(detail.Services) != 1 {
+		t.Fatalf("archived vehicle should keep its records, got %d", len(detail.Services))
+	}
+
+	// Dashboard drops it from the running totals and the due reminders.
+	w = call(t, h, c, "GET", "/api/v1/dashboard", nil)
+	want(t, w, http.StatusOK)
+	var dash struct {
+		TotalCost      float64          `json:"total_cost"`
+		ServiceCount   int              `json:"service_count"`
+		DueReminders   []map[string]any `json:"due_reminders"`
+		Vehicles       []map[string]any `json:"vehicles"`
+		RecentServices []map[string]any `json:"recent_services"`
+	}
+	decode(t, w, &dash)
+	if dash.TotalCost != 100 || dash.ServiceCount != 1 {
+		t.Fatalf("dashboard should exclude archived: %+v", dash)
+	}
+	if len(dash.Vehicles) != 1 || len(dash.DueReminders) != 0 {
+		t.Fatalf("dashboard should drop archived vehicle and its reminders: %+v", dash)
+	}
+	// The recent feed must agree with the counts beside it.
+	if len(dash.RecentServices) != 1 || dash.RecentServices[0]["vehicle_name"] != "Keeper" {
+		t.Fatalf("recent services should exclude archived vehicles: %v", dash.RecentServices)
+	}
+
+	// Reports stay historical — both vehicles' spending still counts.
+	w = call(t, h, c, "GET", "/api/v1/reports", nil)
+	want(t, w, http.StatusOK)
+	var rep struct {
+		TotalCost float64          `json:"total_cost"`
+		ByVehicle []map[string]any `json:"by_vehicle"`
+	}
+	decode(t, w, &rep)
+	if rep.TotalCost != 200 || len(rep.ByVehicle) != 2 {
+		t.Fatalf("reports should still include archived: %+v", rep)
+	}
+
+	// Unarchiving restores it.
+	w = call(t, h, c, "POST", fmt.Sprintf("/api/v1/vehicles/%d/unarchive", sold), nil)
+	want(t, w, http.StatusOK)
+	w = call(t, h, c, "GET", "/api/v1/vehicles", nil)
+	want(t, w, http.StatusOK)
+	decode(t, w, &active)
+	if len(active) != 2 {
+		t.Fatalf("unarchive should restore the vehicle, got %v", active)
+	}
+}
+
 // ---- services ----
 
 func TestAPIServices(t *testing.T) {
