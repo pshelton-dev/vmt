@@ -1,6 +1,10 @@
-// Package mail sends outbound notification email over SMTP using only the
-// standard library. It supports STARTTLS (default), implicit TLS, and plaintext,
-// and can optionally skip TLS certificate verification (self-signed servers).
+// Package mail sends outbound notification email, either over SMTP or through
+// the Gmail API. The SMTP path uses only the standard library and supports
+// STARTTLS (default), implicit TLS, and plaintext, and can optionally skip TLS
+// certificate verification (self-signed servers).
+//
+// Settings live in the database (see internal/handlers), not the environment,
+// so these structs are populated per-send from stored preferences.
 package mail
 
 import (
@@ -10,14 +14,30 @@ import (
 	"net/smtp"
 	"strings"
 	"time"
-
-	"vmt/internal/config"
 )
 
 const dialTimeout = 15 * time.Second
 
-// Send delivers a plaintext message to a single recipient.
-func Send(cfg config.SMTP, to, subject, body string) error {
+// SMTP holds outbound mail server settings.
+type SMTP struct {
+	Host string
+	Port string
+	User string
+	Pass string
+	From string
+	TLS  string // "starttls" (default), "implicit", or "none"
+	// Insecure skips TLS certificate verification (for mail servers with a
+	// self-signed cert). Applies to STARTTLS and implicit TLS.
+	Insecure bool
+}
+
+// Configured reports whether enough SMTP settings are present to send mail.
+func (s SMTP) Configured() bool {
+	return s.Host != "" && s.From != ""
+}
+
+// Send delivers a plaintext message to a single recipient over SMTP.
+func Send(cfg SMTP, to, subject, body string) error {
 	if !cfg.Configured() {
 		return fmt.Errorf("SMTP is not configured")
 	}

@@ -13,8 +13,6 @@ import (
 	"strings"
 	"testing"
 	"time"
-
-	"vmt/internal/config"
 )
 
 func selfSignedCert(t *testing.T) tls.Certificate {
@@ -112,7 +110,7 @@ func TestSendSTARTTLSSelfSigned(t *testing.T) {
 	defer ln.Close()
 	host, port, _ := net.SplitHostPort(ln.Addr().String())
 
-	base := config.SMTP{Host: host, Port: port, From: "vmt@test", TLS: "starttls"}
+	base := SMTP{Host: host, Port: port, From: "vmt@test", TLS: "starttls"}
 
 	// 1) Verification ON (default) must fail against the self-signed cert.
 	if err := Send(base, "to@test", "Subj", "Body"); err == nil {

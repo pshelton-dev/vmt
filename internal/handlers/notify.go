@@ -6,7 +6,6 @@ import (
 	"log"
 	"time"
 
-	"vmt/internal/mail"
 	"vmt/internal/models"
 )
 
@@ -22,10 +21,14 @@ func (s *Server) notifyEmail() string {
 	return s.getPref("notify_email", "")
 }
 
-// mailReady reports whether a due-reminder email could actually be sent:
-// SMTP configured (env), notifications enabled, and a recipient set.
+// MailReady is the exported form of mailReady, for startup logging.
+func (s *Server) MailReady() bool { return s.mailReady() }
+
+// mailReady reports whether a due-reminder email could actually be sent: the
+// selected provider is configured (in Settings), notifications are enabled, and
+// a recipient is set.
 func (s *Server) mailReady() bool {
-	return s.cfg.SMTP.Configured() && s.notifyEnabled() && s.notifyEmail() != ""
+	return s.mailConfigured() && s.notifyEnabled() && s.notifyEmail() != ""
 }
 
 // StartNotifier launches the background loop that emails due reminders. It
@@ -69,7 +72,7 @@ func (s *Server) runNotifications() {
 			continue
 		}
 		subject, body := s.reminderEmail(r)
-		if err := mail.Send(s.cfg.SMTP, to, subject, body); err != nil {
+		if err := s.sendMail(to, subject, body); err != nil {
 			log.Printf("notify: send reminder %d: %v", r.ID, err)
 			continue
 		}
@@ -120,10 +123,10 @@ func (s *Server) sendTestEmail() error {
 	if to == "" {
 		return fmt.Errorf("no recipient address set")
 	}
-	if !s.cfg.SMTP.Configured() {
-		return fmt.Errorf("SMTP is not configured (set VMT_SMTP_* env vars)")
+	if !s.mailConfigured() {
+		return fmt.Errorf("email is not configured — set it up under Settings")
 	}
-	return mail.Send(s.cfg.SMTP, to,
+	return s.sendMail(to,
 		"VMT test email",
 		"This is a test email from your Vehicle Maintenance Tracker.\n\n"+
 			"If you received this, reminder notifications are working.\n\n— VMT\n")

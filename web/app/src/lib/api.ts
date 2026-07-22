@@ -145,12 +145,33 @@ export interface Meta {
   date_format: string;
 }
 
+export type MailProvider = "smtp" | "gmail";
+
 export interface Settings {
   currency: string;
   distance_unit: string;
   date_format: string;
-  smtp_configured: boolean;
+
+  mail_provider: MailProvider;
+  mail_configured: boolean;
+  mail_from: string;
+
+  smtp_host: string;
+  smtp_port: string;
+  smtp_user: string;
   smtp_from: string;
+  smtp_tls: "starttls" | "implicit" | "none";
+  smtp_insecure: boolean;
+  smtp_pass_set: boolean;
+  smtp_configured: boolean;
+
+  gmail_client_id: string;
+  gmail_client_secret_set: boolean;
+  gmail_connected: boolean;
+  gmail_email: string;
+  gmail_redirect_uri: string;
+  gmail_setup_error?: string;
+
   notify_enabled: boolean;
   notify_email: string;
 }

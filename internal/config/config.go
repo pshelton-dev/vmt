@@ -19,25 +19,6 @@ type Config struct {
 	DateFormat    string        // Go time layout for display
 	SessionTTL    time.Duration // how long a login lasts
 	BaseURL       string        // public base URL for links in emails (optional)
-	SMTP          SMTP          // outbound email settings
-}
-
-// SMTP holds outbound mail server settings (all from environment variables).
-type SMTP struct {
-	Host string
-	Port string
-	User string
-	Pass string
-	From string
-	TLS  string // "starttls" (default), "implicit", or "none"
-	// Insecure skips TLS certificate verification (for mail servers with a
-	// self-signed cert). Applies to STARTTLS and implicit TLS.
-	Insecure bool
-}
-
-// Configured reports whether enough SMTP settings are present to send mail.
-func (s SMTP) Configured() bool {
-	return s.Host != "" && s.From != ""
 }
 
 func env(key, def string) string {
@@ -45,15 +26,6 @@ func env(key, def string) string {
 		return v
 	}
 	return def
-}
-
-// envBool reports whether an env var is set to a truthy value (1/true/yes/on).
-func envBool(key string) bool {
-	switch strings.ToLower(strings.TrimSpace(os.Getenv(key))) {
-	case "1", "true", "yes", "on":
-		return true
-	}
-	return false
 }
 
 // Load builds a Config from environment variables, applying sensible defaults.
@@ -70,14 +42,5 @@ func Load() Config {
 		DateFormat:    env("VMT_DATE_FORMAT", "Jan 2, 2006"),
 		SessionTTL:    30 * 24 * time.Hour,
 		BaseURL:       strings.TrimRight(os.Getenv("VMT_BASE_URL"), "/"),
-		SMTP: SMTP{
-			Host:     os.Getenv("VMT_SMTP_HOST"),
-			Port:     env("VMT_SMTP_PORT", "587"),
-			User:     os.Getenv("VMT_SMTP_USER"),
-			Pass:     os.Getenv("VMT_SMTP_PASS"),
-			From:     os.Getenv("VMT_SMTP_FROM"),
-			TLS:      env("VMT_SMTP_TLS", "starttls"),
-			Insecure: envBool("VMT_SMTP_INSECURE"),
-		},
 	}
 }

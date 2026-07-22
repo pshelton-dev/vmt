@@ -201,31 +201,44 @@ All configuration is via environment variables (see `.env.example`):
 | `VMT_ADDR`           | `:8080`                            | Listen address (inside the container)            |
 | `VMT_DATA_DIR`       | `/data`                            | Where the SQLite DB and uploads live             |
 
-SMTP variables for email notifications are listed under
+Email sending is **not** configured by environment variable — see
 [Email notifications](#email-notifications).
 
 ## Email notifications
 
-Reminders can email you when they fall due. Setup:
+Reminders can email you when they fall due. **Everything is configured in the
+app** — Settings → *How email is sent* — so there is nothing to set in the
+environment and no restart required. Pick one of two delivery methods:
 
-1. Configure an SMTP server via environment variables (kept out of the database
-   and backups):
+### Option A — SMTP server
 
-   | Variable        | Example                | Notes                                   |
-   |-----------------|------------------------|-----------------------------------------|
-   | `VMT_SMTP_HOST` | `smtp.gmail.com`       | Leave blank to disable email entirely   |
-   | `VMT_SMTP_PORT` | `587`                  | `587` STARTTLS, `465` implicit TLS      |
-   | `VMT_SMTP_USER` | `you@gmail.com`        | Omit for unauthenticated relays         |
-   | `VMT_SMTP_PASS` | `app-password`         |                                         |
-   | `VMT_SMTP_FROM` | `vmt@example.com`      | Sender address                          |
-   | `VMT_SMTP_TLS`  | `starttls`             | `starttls` (default), `implicit`, `none`|
-   | `VMT_SMTP_INSECURE` | _(off)_            | `1` to skip TLS cert verification (self-signed servers) |
-   | `VMT_BASE_URL`  | `https://vmt.example`  | Optional; adds a link to emails         |
+Fill in host, port, username, password, sender address and encryption
+(`STARTTLS` / implicit TLS / none). There's a *Skip TLS certificate
+verification* checkbox for mail servers with self-signed certificates.
 
-2. In **Settings → Email notifications**, set the recipient address, tick
+### Option B — Gmail
+
+Send through a connected Google account using the Gmail API, with no password
+stored. One-time setup in the [Google Cloud console](https://console.cloud.google.com/):
+
+1. Create an OAuth **Web application** client.
+2. Add the **Authorised redirect URI** shown on the settings page — it is
+   `<VMT_BASE_URL>/api/v1/oauth/google/callback`, so `VMT_BASE_URL` must be set.
+3. Set the OAuth consent screen to **"In production"**. While it stays in
+   *Testing*, Google expires the refresh token after **7 days** and reminder
+   emails stop silently. Because `gmail.send` is a sensitive scope, an
+   unverified app shows a warning screen once — continue via **Advanced**.
+4. Paste the client ID and secret into VMT, then **Connect Google account**.
+
+VMT requests only `gmail.send`, which permits sending and grants no access to
+read your mail.
+
+### Then, for either option
+
+1. In **Settings → Email notifications**, set the recipient address, tick
    **Enable email notifications**, and use **Send test email** to verify.
 
-3. On each reminder, tick **Email me when this is due**.
+2. On each reminder, tick **Email me when this is due**.
 
 A background job checks periodically and sends **one email per due/overdue
 reminder** that has opted in, re-nudging weekly while an item stays due. Odometer

@@ -47,8 +47,10 @@ func main() {
 	notifyCtx, stopNotify := context.WithCancel(context.Background())
 	defer stopNotify()
 	srv.StartNotifier(notifyCtx)
-	if cfg.SMTP.Configured() {
-		log.Print("SMTP configured; reminder email notifications available")
+	// Mail settings live in the database now (Settings → Notifications), so the
+	// notifier picks up changes without a restart.
+	if srv.MailReady() {
+		log.Print("email configured; reminder notifications available")
 	}
 
 	// Periodically purge expired sessions.

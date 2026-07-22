@@ -14,13 +14,6 @@ services:
       # Public base URL of the app (used for links in notification emails).
       VMT_BASE_URL: ${VMT_BASE_URL:-https://vmt.int.paulandjenn.com}
       # Outbound email (SMTP) for reminder notifications. Leave blank to disable.
-      VMT_SMTP_HOST: ${VMT_SMTP_HOST:-}
-      VMT_SMTP_PORT: ${VMT_SMTP_PORT:-587}
-      VMT_SMTP_USER: ${VMT_SMTP_USER:-}
-      VMT_SMTP_PASS: ${VMT_SMTP_PASS:-}
-      VMT_SMTP_FROM: ${VMT_SMTP_FROM:-}
-      VMT_SMTP_TLS: ${VMT_SMTP_TLS:-starttls}
-      VMT_SMTP_INSECURE: ${VMT_SMTP_INSECURE:-}
     volumes:
       - vmt_data:/data
     # No published host port: the app is reached over the udBridge network

@@ -111,6 +111,12 @@ func (s *Server) mountAPI(mux *http.ServeMux) {
 	mux.HandleFunc("GET /api/v1/settings", a(s.apiGetSettings))
 	mux.HandleFunc("PUT /api/v1/settings", a(s.apiUpdateSettings))
 	mux.HandleFunc("POST /api/v1/settings/password", a(s.apiChangePassword))
+
+	// Google OAuth (Gmail send). The callback is a top-level browser navigation
+	// from Google; the session cookie is SameSite=Lax, so it still authenticates.
+	mux.HandleFunc("GET /api/v1/oauth/google/start", a(s.apiGoogleOAuthStart))
+	mux.HandleFunc("GET /api/v1/oauth/google/callback", a(s.apiGoogleOAuthCallback))
+	mux.HandleFunc("POST /api/v1/oauth/google/disconnect", a(s.apiGoogleDisconnect))
 	mux.HandleFunc("POST /api/v1/settings/test-email", a(s.apiTestEmail))
 	mux.HandleFunc("POST /api/v1/import/preview", a(s.apiImportPreview))
 	mux.HandleFunc("POST /api/v1/import", a(s.apiImportCommit))

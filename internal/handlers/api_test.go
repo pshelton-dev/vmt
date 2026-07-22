@@ -41,6 +41,7 @@ func newTestAPI(t *testing.T) (http.Handler, *http.Cookie) {
 		Currency:     "$",
 		DistanceUnit: "mi",
 		DateFormat:   "Jan 2, 2006",
+		BaseURL:      "https://vmt.test",
 	}
 	s, err := New(d, am, cfg)
 	if err != nil {
@@ -466,6 +467,124 @@ func TestAPISettings(t *testing.T) {
 	want(t, w, http.StatusNoContent)
 	w = call(t, h, nil, "POST", "/api/v1/login", map[string]string{"password": "newpass123"})
 	want(t, w, http.StatusNoContent)
+}
+
+// TestAPIMailSettings covers mail config living in the DB (no env vars): SMTP
+// fields round-trip, secrets are never returned, and the provider toggle is
+// guarded.
+func TestAPIMailSettings(t *testing.T) {
+	h, c := newTestAPI(t)
+
+	// Defaults: SMTP provider, nothing configured.
+	w := call(t, h, c, "GET", "/api/v1/settings", nil)
+	want(t, w, http.StatusOK)
+	var st map[string]any
+	decode(t, w, &st)
+	if st["mail_provider"] != "smtp" || st["mail_configured"] != false {
+		t.Fatalf("unexpected mail defaults: %v", st)
+	}
+	// The redirect URI is derived from BaseURL so it can be shown for the
+	// Google console setup.
+	if st["gmail_redirect_uri"] != "https://vmt.test/api/v1/oauth/google/callback" {
+		t.Fatalf("bad redirect uri: %v", st["gmail_redirect_uri"])
+	}
+
+	// Save SMTP settings, including a password.
+	w = call(t, h, c, "PUT", "/api/v1/settings", map[string]any{
+		"smtp_host": "mail.example.com", "smtp_port": "465", "smtp_user": "bob",
+		"smtp_pass": "s3cret", "smtp_from": "vmt@example.com",
+		"smtp_tls": "implicit", "smtp_insecure": true,
+	})
+	want(t, w, http.StatusOK)
+	decode(t, w, &st)
+	if st["smtp_host"] != "mail.example.com" || st["smtp_tls"] != "implicit" ||
+		st["smtp_insecure"] != true || st["mail_configured"] != true {
+		t.Fatalf("smtp settings not saved: %v", st)
+	}
+	// The password must never come back — only the fact that one is stored.
+	if _, leaked := st["smtp_pass"]; leaked {
+		t.Fatal("smtp_pass must not be returned by the API")
+	}
+	if st["smtp_pass_set"] != true {
+		t.Fatalf("smtp_pass_set should be true: %v", st)
+	}
+
+	// Invalid TLS mode rejected.
+	w = call(t, h, c, "PUT", "/api/v1/settings", map[string]any{"smtp_tls": "bogus"})
+	want(t, w, http.StatusBadRequest)
+
+	// Unknown provider rejected.
+	w = call(t, h, c, "PUT", "/api/v1/settings", map[string]any{"mail_provider": "carrier-pigeon"})
+	want(t, w, http.StatusBadRequest)
+
+	// Switching to Gmail without a connected account is refused — otherwise the
+	// app would silently stop sending.
+	w = call(t, h, c, "PUT", "/api/v1/settings", map[string]any{"mail_provider": "gmail"})
+	want(t, w, http.StatusBadRequest)
+
+	// Google client credentials save; the secret is write-only.
+	w = call(t, h, c, "PUT", "/api/v1/settings", map[string]any{
+		"gmail_client_id": "cid.apps.googleusercontent.com", "gmail_client_secret": "gsec",
+	})
+	want(t, w, http.StatusOK)
+	decode(t, w, &st)
+	if st["gmail_client_id"] != "cid.apps.googleusercontent.com" {
+		t.Fatalf("client id not saved: %v", st)
+	}
+	if _, leaked := st["gmail_client_secret"]; leaked {
+		t.Fatal("gmail_client_secret must not be returned by the API")
+	}
+	if st["gmail_client_secret_set"] != true || st["gmail_connected"] != false {
+		t.Fatalf("expected secret stored but not yet connected: %v", st)
+	}
+
+	// Clearing the SMTP password is possible by sending an empty string.
+	w = call(t, h, c, "PUT", "/api/v1/settings", map[string]any{"smtp_pass": ""})
+	want(t, w, http.StatusOK)
+	decode(t, w, &st)
+	if st["smtp_pass_set"] != false {
+		t.Fatalf("smtp_pass should have been cleared: %v", st)
+	}
+}
+
+// TestAPIGoogleOAuthGuards covers the flow's refusals: it can't start without
+// credentials, and the callback rejects a mismatched/replayed state.
+func TestAPIGoogleOAuthGuards(t *testing.T) {
+	h, c := newTestAPI(t)
+
+	// No client credentials yet -> refuse to start.
+	w := call(t, h, c, "GET", "/api/v1/oauth/google/start", nil)
+	want(t, w, http.StatusBadRequest)
+
+	w = call(t, h, c, "PUT", "/api/v1/settings", map[string]any{
+		"gmail_client_id": "cid", "gmail_client_secret": "gsec",
+	})
+	want(t, w, http.StatusOK)
+
+	// Now it redirects to Google's consent screen.
+	w = call(t, h, c, "GET", "/api/v1/oauth/google/start", nil)
+	want(t, w, http.StatusFound)
+	loc := w.Header().Get("Location")
+	if !strings.Contains(loc, "accounts.google.com") || !strings.Contains(loc, "state=") {
+		t.Fatalf("unexpected consent redirect: %s", loc)
+	}
+
+	// A callback with the wrong state must not be accepted.
+	w = call(t, h, c, "GET", "/api/v1/oauth/google/callback?code=x&state=wrong", nil)
+	want(t, w, http.StatusOK) // renders an HTML result page
+	if !strings.Contains(w.Body.String(), "stale or was already used") {
+		t.Fatalf("expected a state-mismatch page, got: %s", w.Body.String())
+	}
+
+	// Disconnect is idempotent and leaves the provider on SMTP.
+	w = call(t, h, c, "POST", "/api/v1/oauth/google/disconnect", nil)
+	want(t, w, http.StatusNoContent)
+	w = call(t, h, c, "GET", "/api/v1/settings", nil)
+	var st map[string]any
+	decode(t, w, &st)
+	if st["mail_provider"] != "smtp" || st["gmail_connected"] != false {
+		t.Fatalf("disconnect should reset to smtp: %v", st)
+	}
 }
 
 // ---- import ----

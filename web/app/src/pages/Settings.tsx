@@ -41,6 +41,7 @@ export default function SettingsPage() {
         <PreferencesCard s={settings.data} presets={meta.data?.date_presets ?? []} refresh={refresh} />
         <PasswordCard />
         <NotificationsCard s={settings.data} refresh={refresh} />
+        <MailDeliveryCard s={settings.data} refresh={refresh} />
         <ImportCard />
         <BackupCard />
       </div>
@@ -203,10 +204,11 @@ function NotificationsCard({ s, refresh }: { s: SettingsData; refresh: () => voi
         “Email me when this is due” checkbox).
       </p>
       <p className="mb-3 text-sm">
-        {s.smtp_configured ? (
-          <>📧 SMTP is configured (sending as <code className="rounded bg-surface-2 px-1">{s.smtp_from}</code>).</>
+        {s.mail_configured ? (
+          <>📧 Sending via <strong>{s.mail_provider === "gmail" ? "Gmail" : "SMTP"}</strong> as{" "}
+            <code className="rounded bg-surface-2 px-1">{s.mail_from}</code>.</>
         ) : (
-          <>⚠ SMTP is not configured — set the <code className="rounded bg-surface-2 px-1">VMT_SMTP_*</code> environment variables and restart.</>
+          <>⚠ Email is not configured yet — set up a sending method below.</>
         )}
       </p>
       <form
@@ -234,7 +236,7 @@ function NotificationsCard({ s, refresh }: { s: SettingsData; refresh: () => voi
           <button
             type="button"
             onClick={() => test.mutate()}
-            disabled={test.isPending || !s.smtp_configured}
+            disabled={test.isPending || !s.mail_configured}
             className="min-h-11 rounded-lg border border-border px-5 hover:border-muted disabled:opacity-50"
           >
             {test.isPending ? "Sending…" : "Send test email"}
@@ -242,6 +244,243 @@ function NotificationsCard({ s, refresh }: { s: SettingsData; refresh: () => voi
         </div>
       </form>
     </Card>
+  );
+}
+
+// ---- how mail is sent: SMTP or Gmail ----
+
+function MailDeliveryCard({ s, refresh }: { s: SettingsData; refresh: () => void }) {
+  // `tab` is only which panel you're looking at. The provider that actually
+  // sends is s.mail_provider, changed deliberately below — otherwise you could
+  // never open the Gmail panel to set it up, since switching to an
+  // unconfigured Gmail is (correctly) refused by the API.
+  const [tab, setTab] = useState<"smtp" | "gmail">(s.mail_provider);
+  const [msg, flash, isErr] = useFlash();
+
+  const switchProvider = useMutation({
+    mutationFn: (p: "smtp" | "gmail") => api.put("/settings", { mail_provider: p }),
+    onSuccess: (_d, p) => {
+      flash(`Now sending via ${p === "gmail" ? "Gmail" : "SMTP"}.`);
+      refresh();
+    },
+    onError: (e) => flash(e instanceof ApiError ? e.message : "Could not switch provider.", true),
+  });
+
+  const canActivate = tab === "gmail" ? s.gmail_connected : s.smtp_configured;
+
+  return (
+    <Card title="How email is sent">
+      <p className="mb-3 text-sm text-muted">
+        All mail settings live here in the app — there are no environment variables to set.
+      </p>
+
+      <div className="mb-4 flex flex-wrap items-center gap-3">
+        <div className="inline-flex rounded-lg border border-border p-1">
+          {(["smtp", "gmail"] as const).map((p) => (
+            <button
+              key={p}
+              type="button"
+              onClick={() => setTab(p)}
+              className={`min-h-11 rounded-md px-4 text-sm font-semibold ${
+                tab === p ? "bg-surface-2 text-text" : "text-muted hover:text-text"
+              }`}
+            >
+              {p === "smtp" ? "SMTP server" : "Gmail"}
+              {s.mail_provider === p && <span className="ml-2 text-xs text-ok">● active</span>}
+            </button>
+          ))}
+        </div>
+        {s.mail_provider !== tab && (
+          <button
+            type="button"
+            onClick={() => switchProvider.mutate(tab)}
+            disabled={!canActivate || switchProvider.isPending}
+            title={canActivate ? undefined : "Finish setting this up first"}
+            className="min-h-11 rounded-lg border border-border px-4 text-sm hover:border-muted disabled:opacity-50"
+          >
+            Use {tab === "gmail" ? "Gmail" : "SMTP"} for sending
+          </button>
+        )}
+      </div>
+      {msg && <p className={`mb-3 text-sm ${isErr ? "text-danger" : "text-ok"}`}>{msg}</p>}
+
+      {tab === "smtp" ? <SmtpForm s={s} refresh={refresh} /> : <GmailPanel s={s} refresh={refresh} />}
+    </Card>
+  );
+}
+
+function SmtpForm({ s, refresh }: { s: SettingsData; refresh: () => void }) {
+  const [f, setF] = useState({
+    smtp_host: s.smtp_host,
+    smtp_port: s.smtp_port,
+    smtp_user: s.smtp_user,
+    smtp_from: s.smtp_from,
+    smtp_tls: s.smtp_tls,
+    smtp_insecure: s.smtp_insecure,
+  });
+  // Left blank means "keep the stored password"; only sent when typed into.
+  const [pass, setPass] = useState("");
+  const [msg, flash, isErr] = useFlash();
+
+  const save = useMutation({
+    mutationFn: () => api.put("/settings", pass === "" ? f : { ...f, smtp_pass: pass }),
+    onSuccess: () => {
+      setPass("");
+      flash("SMTP settings saved.");
+      refresh();
+    },
+    onError: (e) => flash(e instanceof ApiError ? e.message : "Save failed.", true),
+  });
+
+  const set = (k: keyof typeof f) => (e: { target: { value: string } }) =>
+    setF({ ...f, [k]: e.target.value });
+
+  return (
+    <form
+      onSubmit={(e: FormEvent) => {
+        e.preventDefault();
+        save.mutate();
+      }}
+      className="space-y-4"
+    >
+      <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+        <Field label="Server host">
+          <TextInput value={f.smtp_host} onChange={set("smtp_host")} placeholder="mail.example.com" />
+        </Field>
+        <Field label="Port">
+          <TextInput value={f.smtp_port} onChange={set("smtp_port")} placeholder="587" inputMode="numeric" />
+        </Field>
+        <Field label="Username">
+          <TextInput value={f.smtp_user} onChange={set("smtp_user")} autoComplete="off" />
+        </Field>
+        <Field label={s.smtp_pass_set ? "Password (stored — leave blank to keep)" : "Password"}>
+          <TextInput
+            type="password"
+            value={pass}
+            onChange={(e) => setPass(e.target.value)}
+            placeholder={s.smtp_pass_set ? "••••••••" : ""}
+            autoComplete="new-password"
+          />
+        </Field>
+        <Field label="Send from">
+          <TextInput type="email" value={f.smtp_from} onChange={set("smtp_from")} placeholder="vmt@example.com" />
+        </Field>
+        <Field label="Encryption">
+          <Select value={f.smtp_tls} onChange={set("smtp_tls")}>
+            <option value="starttls">STARTTLS (port 587)</option>
+            <option value="implicit">Implicit TLS (port 465)</option>
+            <option value="none">None (plaintext)</option>
+          </Select>
+        </Field>
+      </div>
+      <label className="flex min-h-11 items-center gap-2.5 text-sm">
+        <input
+          type="checkbox"
+          checked={f.smtp_insecure}
+          onChange={(e) => setF({ ...f, smtp_insecure: e.target.checked })}
+          className="h-5 w-5 accent-[var(--primary)]"
+        />
+        Skip TLS certificate verification (self-signed servers)
+      </label>
+      {msg && <p className={`text-sm ${isErr ? "text-danger" : "text-ok"}`}>{msg}</p>}
+      <PrimaryButton disabled={save.isPending}>Save SMTP settings</PrimaryButton>
+    </form>
+  );
+}
+
+function GmailPanel({ s, refresh }: { s: SettingsData; refresh: () => void }) {
+  const [id, setId] = useState(s.gmail_client_id);
+  const [secret, setSecret] = useState("");
+  const [msg, flash, isErr] = useFlash();
+
+  const save = useMutation({
+    mutationFn: () =>
+      api.put("/settings", secret === "" ? { gmail_client_id: id } : { gmail_client_id: id, gmail_client_secret: secret }),
+    onSuccess: () => {
+      setSecret("");
+      flash("Google credentials saved. You can connect the account now.");
+      refresh();
+    },
+    onError: (e) => flash(e instanceof ApiError ? e.message : "Save failed.", true),
+  });
+  const disconnect = useMutation({
+    mutationFn: () => api.post("/oauth/google/disconnect"),
+    onSuccess: () => {
+      flash("Google account disconnected.");
+      refresh();
+    },
+  });
+
+  return (
+    <div className="space-y-4">
+      {s.gmail_connected ? (
+        <p className="text-sm">
+          ✅ Connected as <code className="rounded bg-surface-2 px-1">{s.gmail_email}</code>
+        </p>
+      ) : (
+        <p className="text-sm text-muted">
+          Create an OAuth <strong>Web application</strong> client in the Google Cloud console, then paste its
+          credentials here and connect the account.
+        </p>
+      )}
+
+      {s.gmail_setup_error ? (
+        <p className="rounded-lg border border-border bg-surface-2 p-3 text-sm text-danger">
+          {s.gmail_setup_error}
+        </p>
+      ) : (
+        <Field label="Authorised redirect URI (paste this into the Google console)">
+          <TextInput readOnly value={s.gmail_redirect_uri} onFocus={(e) => e.currentTarget.select()} />
+        </Field>
+      )}
+
+      <form
+        onSubmit={(e: FormEvent) => {
+          e.preventDefault();
+          save.mutate();
+        }}
+        className="space-y-4"
+      >
+        <Field label="Client ID">
+          <TextInput value={id} onChange={(e) => setId(e.target.value)} placeholder="….apps.googleusercontent.com" />
+        </Field>
+        <Field label={s.gmail_client_secret_set ? "Client secret (stored — leave blank to keep)" : "Client secret"}>
+          <TextInput
+            type="password"
+            value={secret}
+            onChange={(e) => setSecret(e.target.value)}
+            placeholder={s.gmail_client_secret_set ? "••••••••" : ""}
+            autoComplete="new-password"
+          />
+        </Field>
+        {msg && <p className={`text-sm ${isErr ? "text-danger" : "text-ok"}`}>{msg}</p>}
+        <div className="flex flex-wrap gap-3">
+          <PrimaryButton disabled={save.isPending}>Save credentials</PrimaryButton>
+          <a
+            href="/api/v1/oauth/google/start"
+            className={`flex min-h-11 items-center rounded-lg border border-border px-5 hover:border-muted ${
+              s.gmail_client_id && s.gmail_client_secret_set ? "" : "pointer-events-none opacity-50"
+            }`}
+          >
+            {s.gmail_connected ? "Reconnect account" : "Connect Google account"}
+          </a>
+          {s.gmail_connected && (
+            <button
+              type="button"
+              onClick={() => disconnect.mutate()}
+              className="min-h-11 rounded-lg border border-border px-5 text-danger hover:bg-danger/10"
+            >
+              Disconnect
+            </button>
+          )}
+        </div>
+      </form>
+
+      <p className="text-sm text-muted">
+        Set the OAuth consent screen to <strong>“In production”</strong>. While it is in “Testing”, Google
+        expires the refresh token after 7 days and reminder emails stop silently.
+      </p>
+    </div>
   );
 }
 
