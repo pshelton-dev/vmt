@@ -10,6 +10,7 @@ import Reports from "./pages/Reports";
 import Settings from "./pages/Settings";
 import ServiceForm from "./pages/vehicles/ServiceForm";
 import ReminderForm from "./pages/vehicles/ReminderForm";
+import Report from "./pages/vehicles/Report";
 
 export default function App() {
   const session = useQuery({
@@ -38,6 +39,8 @@ export default function App() {
 
   return (
     <Routes>
+      {/* Outside the shell: a bare, print-ready page. */}
+      <Route path="vehicles/:id/report" element={<Report />} />
       <Route element={<Layout />}>
         <Route index element={<Dashboard />} />
         <Route path="vehicles/*" element={<Vehicles />} />

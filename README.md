@@ -36,6 +36,10 @@ be installed to the home screen:
   keeps every record but drops out of the vehicle list, the dashboard's running
   totals and the reminders, living on its own **Archived vehicles** page. Its
   past spending still counts in the cost reports, and unarchiving restores it.
+- **Sale report** — *Print report* on a vehicle's page produces a clean
+  maintenance record to hand to a buyer (print it or save as PDF): identity and
+  full service history, with costs optional. Your notes, plate and reminders
+  are left out.
 - **Service log** — date, odometer, category, description, vendor, and cost per
   record. Odometer auto-advances the vehicle's current reading.
 - **Reminders** — by due date, by odometer, or recurring (every N months/miles).

@@ -90,3 +90,16 @@ body {
   color: var(--text);
   -webkit-text-size-adjust: 100%;
 }
+
+/* Paper is always light, whatever theme the screen is using. */
+@media print {
+  :root,
+  :root[data-theme="dark"] {
+    --bg: #ffffff;
+    --surface: #ffffff;
+    --surface-2: #eef0f3;
+    --border: #dde1e7;
+    --text: #1a222c;
+    --muted: #5c6a7a;
+  }
+}

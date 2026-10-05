@@ -97,6 +97,9 @@ export default function VehicleDetail() {
           <Link to={`/vehicles/${v.id}/edit`} className="flex min-h-11 items-center rounded-lg border border-border px-4 hover:border-muted">
             Edit
           </Link>
+          <Link to={`/vehicles/${v.id}/report`} className="flex min-h-11 items-center rounded-lg border border-border px-4 hover:border-muted">
+            Print report
+          </Link>
           <button
             onClick={() => archive.mutate(v.archived ? "unarchive" : "archive")}
             disabled={archive.isPending}
