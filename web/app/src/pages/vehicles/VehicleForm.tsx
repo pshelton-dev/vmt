@@ -152,7 +152,6 @@ export default function VehicleForm() {
             <input
               type="file"
               accept="image/*"
-              capture="environment"
               onChange={(e) => setPhoto(e.target.files?.[0] ?? null)}
               className="mt-1 block w-full text-sm text-muted file:mr-3 file:rounded-lg file:border file:border-border file:bg-surface-2 file:px-3 file:py-2 file:text-text"
             />

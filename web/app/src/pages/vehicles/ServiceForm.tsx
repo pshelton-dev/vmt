@@ -142,7 +142,6 @@ export default function ServiceForm() {
           <Field label="Attach receipt / document">
             <input
               type="file"
-              capture="environment"
               onChange={(e) => setReceipt(e.target.files?.[0] ?? null)}
               className="mt-1 block w-full text-sm text-muted file:mr-3 file:rounded-lg file:border file:border-border file:bg-surface-2 file:px-3 file:py-2 file:text-text"
             />

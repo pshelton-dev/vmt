@@ -317,11 +317,10 @@ function FilesTab({ d, refresh }: { d: Detail; refresh: () => void }) {
     onSuccess: refresh,
   });
 
-  const pick = (accept: string, capture: boolean, cb: (f: File) => void) => {
+  const pick = (accept: string, cb: (f: File) => void) => {
     const input = document.createElement("input");
     input.type = "file";
     input.accept = accept;
-    if (capture) input.setAttribute("capture", "environment");
     input.onchange = () => input.files?.[0] && cb(input.files[0]);
     input.click();
   };
@@ -332,7 +331,7 @@ function FilesTab({ d, refresh }: { d: Detail; refresh: () => void }) {
         title="Photos"
         actions={
           <button
-            onClick={() => pick("image/*", true, (f) => upload.mutate({ field: "photo", file: f, path: `/vehicles/${v.id}/photos` }))}
+            onClick={() => pick("image/*", (f) => upload.mutate({ field: "photo", file: f, path: `/vehicles/${v.id}/photos` }))}
             className="flex min-h-9 items-center rounded-lg bg-primary px-3 text-sm font-semibold text-white hover:bg-primary-strong"
           >
             + Photo
@@ -379,7 +378,7 @@ function FilesTab({ d, refresh }: { d: Detail; refresh: () => void }) {
         title="Documents"
         actions={
           <button
-            onClick={() => pick("*/*", false, (f) => upload.mutate({ field: "document", file: f, path: `/vehicles/${v.id}/documents` }))}
+            onClick={() => pick("*/*", (f) => upload.mutate({ field: "document", file: f, path: `/vehicles/${v.id}/documents` }))}
             className="flex min-h-9 items-center rounded-lg bg-primary px-3 text-sm font-semibold text-white hover:bg-primary-strong"
           >
             + Document
