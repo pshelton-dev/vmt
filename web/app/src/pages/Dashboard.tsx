@@ -3,6 +3,7 @@ import { Link } from "react-router-dom";
 import { api, type Dashboard as DashboardData, type Meta } from "../lib/api";
 import { money, formatDate } from "../lib/format";
 import StatusBadge from "../components/StatusBadge";
+import VehicleCollage from "../components/VehicleCollage";
 
 export default function Dashboard() {
   const meta = useQuery({ queryKey: ["meta"], queryFn: () => api.get<Meta>("/meta") });
@@ -31,6 +32,7 @@ export default function Dashboard() {
 
   return (
     <div className="space-y-5">
+      <VehicleCollage vehicles={d.vehicles} />
       <h1 className="text-2xl font-bold">Dashboard</h1>
 
       <div className="grid grid-cols-2 gap-3 md:grid-cols-4">
